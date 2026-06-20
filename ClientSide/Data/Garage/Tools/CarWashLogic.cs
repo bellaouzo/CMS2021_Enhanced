@@ -76,6 +76,34 @@ public static class CarWashLogic
 		MelonLogger.Msg($"[CarWashLogic->DoWorkAnimHook] Interior wash requested for carLoaderID: {carLoaderID}");
 	}
 
+	[HarmonyPatch(typeof(global::CarWashLogic), nameof(global::CarWashLogic.DoWorkAnim))]
+	[HarmonyPrefix]
+	public static void OutdoorCarWashHook(CarLoader carLoader)
+	{
+		if (!Client.Instance.isConnected || !listen)
+		{
+			listen = true;
+			return;
+		}
+
+		if (carLoader == null || carLoader.gameObject == null || carLoader.gameObject.name.Length < 11)
+		{
+			MelonLogger.Warning("[CarWashLogic->OutdoorCarWashHook] Invalid CarLoader reference.");
+			return;
+		}
+
+		int carLoaderID = carLoader.gameObject.name[10] - '0' - 1;
+
+		if (carLoaderID < 0 || carLoaderID >= 5)
+		{
+			MelonLogger.Warning($"[CarWashLogic->OutdoorCarWashHook] Invalid carLoaderID: {carLoaderID}");
+			return;
+		}
+
+		ClientSend.CarWashPacket(carLoaderID, false);
+		MelonLogger.Msg($"[CarWashLogic->OutdoorCarWashHook] Outdoor wash for carLoaderID: {carLoaderID}");
+	}
+
 	/// <summary>
 	/// Handles car wash synchronization from server.
 	/// Applies wash effect to the specified car loader.
