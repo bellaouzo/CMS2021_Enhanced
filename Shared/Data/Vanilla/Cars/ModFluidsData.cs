@@ -71,4 +71,35 @@ public struct ModFluidsData
 
 		return _data;
 	}
+
+	public void UpdateFluid(ModFluidData fluid)
+	{
+		if (fluid?.CarFluid == null) return;
+		switch (fluid.CarFluid.FluidType)
+		{
+			case ModCarFluidType.EngineOil:
+				Oil = fluid;
+				break;
+			case ModCarFluidType.Brake:
+				if (Brake == null) Brake = new System.Collections.Generic.List<ModFluidData>();
+				int bi = Brake.FindIndex(f => f?.CarFluid?.ID == fluid.CarFluid.ID);
+				if (bi >= 0) Brake[bi] = fluid; else Brake.Add(fluid);
+				break;
+			case ModCarFluidType.EngineCoolant:
+				if (EngineCoolant == null) EngineCoolant = new System.Collections.Generic.List<ModFluidData>();
+				int ei = EngineCoolant.FindIndex(f => f?.CarFluid?.ID == fluid.CarFluid.ID);
+				if (ei >= 0) EngineCoolant[ei] = fluid; else EngineCoolant.Add(fluid);
+				break;
+			case ModCarFluidType.PowerSteering:
+				if (PowerSteering == null) PowerSteering = new System.Collections.Generic.List<ModFluidData>();
+				int pi = PowerSteering.FindIndex(f => f?.CarFluid?.ID == fluid.CarFluid.ID);
+				if (pi >= 0) PowerSteering[pi] = fluid; else PowerSteering.Add(fluid);
+				break;
+			case ModCarFluidType.WindscreenWash:
+				if (WindscreenWash == null) WindscreenWash = new System.Collections.Generic.List<ModFluidData>();
+				int wi = WindscreenWash.FindIndex(f => f?.CarFluid?.ID == fluid.CarFluid.ID);
+				if (wi >= 0) WindscreenWash[wi] = fluid; else WindscreenWash.Add(fluid);
+				break;
+		}
+	}
 }

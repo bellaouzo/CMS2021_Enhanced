@@ -220,7 +220,8 @@ public class ServerData
 
 	public void UpdateFluid(ModFluidData fluid, int carLoaderID)
 	{
-		//MelonLogger.Msg("Not implemented..."); TODO: Implement this
+		if (!CarSpawnDatas.ContainsKey(carLoaderID)) return;
+		CarSpawnDatas[carLoaderID].FluidsData.UpdateFluid(fluid);
 	}
 
 	public void SetEngineOnStand(ModGroupItem engineGroup, Vector3Serializable position, bool alt)
