@@ -135,7 +135,8 @@ public class Client
 			{ (int)PacketTypes.carEngineSound, ClientHandle.CarEngineSoundPacket },
 			{ (int)PacketTypes.dynoRun, ClientHandle.DynoRunPacket },
 			{ (int)PacketTypes.wheelAlignment, ClientHandle.WheelAlignmentPacket },
-			{ (int)PacketTypes.headlampAlignment, ClientHandle.HeadlampAlignmentPacket }
+			{ (int)PacketTypes.headlampAlignment, ClientHandle.HeadlampAlignmentPacket },
+			{ (int)PacketTypes.garageCustomization, ClientHandle.GarageCustomizationPacket }
 		};
 	}
 

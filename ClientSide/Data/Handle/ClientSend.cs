@@ -471,6 +471,25 @@ public class ClientSend
 		}
 	}
 
+	public static void GarageCustomizationPacket(int sectionIndex, int materialIndex)
+	{
+		using (var packet = new Packet((int)PacketTypes.garageCustomization))
+		{
+			packet.Write(sectionIndex);
+			packet.Write(materialIndex);
+			SendData(packet);
+		}
+	}
+
+	public static void ResyncGarageLook()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.garageCustomization);
+			SendData(packet);
+		}
+	}
+
 	public static void CarPaint(ModColor modColor)
 	{
 		using (var packet = new Packet((int)PacketTypes.carPaint))

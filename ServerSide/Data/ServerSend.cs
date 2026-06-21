@@ -515,6 +515,18 @@ public static class ServerSend
 		}
 	}
 
+	public static void GarageCustomizationPacket(int fromClient, int sectionIndex, int materialIndex, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.garageCustomization))
+		{
+			packet.Write(sectionIndex);
+			packet.Write(materialIndex);
+
+			if (resync) SendData(fromClient, packet);
+			else        SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void CarPaintPacket(int fromClient, ModColor color)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.carPaint))

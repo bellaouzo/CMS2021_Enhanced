@@ -108,4 +108,12 @@ public static class ServerResyncs
 			ServerSend.GarageUpgradePacket(fromClient, upgrade.Value, true);
 		}
 	}
+
+	public static void ResyncGarageLook(int fromClient)
+	{
+		foreach (var kvp in ServerData.Instance.garageLook)
+			ServerSend.GarageCustomizationPacket(fromClient, kvp.Key, kvp.Value, resync: true);
+
+		MelonLogger.Msg("[ServerResyncs] Sent garage look resync.");
+	}
 }

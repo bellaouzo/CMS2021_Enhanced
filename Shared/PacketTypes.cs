@@ -58,5 +58,6 @@ public enum PacketTypes
 	carEngineSound,
 	dynoRun,
 	wheelAlignment,
-	headlampAlignment
+	headlampAlignment,
+	garageCustomization
 }

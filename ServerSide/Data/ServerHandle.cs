@@ -561,6 +561,15 @@ public static class ServerHandle
 		ServerSend.HeadlampAlignmentPacket(fromClient, carLoaderID, left, right);
 	}
 
+	public static void GarageCustomizationPacket(int fromClient, Packet packet)
+	{
+		int sectionIndex  = packet.ReadInt();
+		int materialIndex = packet.ReadInt();
+
+		ServerData.Instance.garageLook[sectionIndex] = materialIndex;
+		ServerSend.GarageCustomizationPacket(fromClient, sectionIndex, materialIndex);
+	}
+
 	public static void WelderPacket(int fromClient, Packet packet)
 	{
 		int loaderID = packet.ReadInt();
@@ -622,6 +631,9 @@ public static class ServerHandle
 				break;
 			case PacketTypes.garageUpgrade:
 				ServerResyncs.ResyncUpgrade(fromClient);
+				break;
+			case PacketTypes.garageCustomization:
+				ServerResyncs.ResyncGarageLook(fromClient);
 				break;
 			case PacketTypes.engineStandSetGroup:
 				bool alt = packet.Read<bool>();
