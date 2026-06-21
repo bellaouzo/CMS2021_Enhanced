@@ -534,6 +534,17 @@ public static class ServerHandle
 		ServerData.Instance.dynoCarLoaderID = carLoaderID;
 		ServerSend.DynoRunPacket(fromClient, carLoaderID);
 	}
+
+	public static void WheelAlignmentPacket(int fromClient, Packet packet)
+	{
+		int carLoaderID = packet.ReadInt();
+		var data = packet.Read<ModWheelsAlignmentData>();
+
+		if (ServerData.Instance.CarSpawnDatas.ContainsKey(carLoaderID))
+			ServerData.Instance.CarSpawnDatas[carLoaderID].wheelsAlignmentData = data;
+
+		ServerSend.WheelAlignmentPacket(fromClient, carLoaderID, data);
+	}
 	
 	public static void WelderPacket(int fromClient, Packet packet)
 	{

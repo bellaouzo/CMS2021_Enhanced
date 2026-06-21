@@ -494,6 +494,16 @@ public static class ServerSend
 		}
 	}
 
+	public static void WheelAlignmentPacket(int fromClient, int carLoaderID, ModWheelsAlignmentData data)
+	{
+		using (var packet = new Packet((int)PacketTypes.wheelAlignment))
+		{
+			packet.Write(carLoaderID);
+			packet.Write(data);
+			SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void CarPaintPacket(int fromClient, ModColor color)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.carPaint))

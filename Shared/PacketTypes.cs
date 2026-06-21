@@ -56,5 +56,6 @@ public enum PacketTypes
 	parkRemove,
 	playerInCar,
 	carEngineSound,
-	dynoRun
+	dynoRun,
+	wheelAlignment
 }

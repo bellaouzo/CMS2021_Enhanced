@@ -450,6 +450,16 @@ public class ClientSend
 		}
 	}
 
+	public static void WheelAlignmentPacket(int carLoaderID, ModWheelsAlignmentData data)
+	{
+		using (var packet = new Packet((int)PacketTypes.wheelAlignment))
+		{
+			packet.Write(carLoaderID);
+			packet.Write(data);
+			SendData(packet);
+		}
+	}
+
 	public static void CarPaint(ModColor modColor)
 	{
 		using (var packet = new Packet((int)PacketTypes.carPaint))

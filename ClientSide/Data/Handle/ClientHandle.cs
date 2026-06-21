@@ -252,6 +252,13 @@ public static class ClientHandle
 		int carLoaderID = _packet.ReadInt();
 		MelonCoroutines.Start(Garage.Tools.DynoLogic.ApplyDynoRun(carLoaderID));
 	}
+
+	public static void WheelAlignmentPacket(Packet _packet)
+	{
+		int carLoaderID = _packet.ReadInt();
+		var data = _packet.Read<ModWheelsAlignmentData>();
+		MelonCoroutines.Start(Garage.Tools.WheelAlignmentLogic.ApplyWheelAlignment(carLoaderID, data));
+	}
 	
 	public static void CarPaintPacket(Packet _packet)
 	{
