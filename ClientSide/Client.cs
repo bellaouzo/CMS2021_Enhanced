@@ -132,7 +132,8 @@ public class Client
 			{ (int)PacketTypes.selectedJob, ClientHandle.SelectedJobPacket },
 			{ (int)PacketTypes.endJob, ClientHandle.EndJobPacket },
 			{ (int)PacketTypes.playerInCar, ClientHandle.PlayerInCarPacket },
-			{ (int)PacketTypes.carEngineSound, ClientHandle.CarEngineSoundPacket }
+			{ (int)PacketTypes.carEngineSound, ClientHandle.CarEngineSoundPacket },
+			{ (int)PacketTypes.dynoRun, ClientHandle.DynoRunPacket }
 		};
 	}
 

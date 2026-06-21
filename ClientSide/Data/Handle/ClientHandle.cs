@@ -246,6 +246,12 @@ public static class ClientHandle
 
 		MelonCoroutines.Start(Garage.Tools.CarWashLogic.WashCar(carLoaderID, interior));
 	}
+
+	public static void DynoRunPacket(Packet _packet)
+	{
+		int carLoaderID = _packet.ReadInt();
+		MelonCoroutines.Start(Garage.Tools.DynoLogic.ApplyDynoRun(carLoaderID));
+	}
 	
 	public static void CarPaintPacket(Packet _packet)
 	{

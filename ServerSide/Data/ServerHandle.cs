@@ -523,9 +523,16 @@ public static class ServerHandle
 	{
 		int loaderID = packet.ReadInt();
 		bool interior = packet.Read<bool>();
-		
-		ServerData.Instance.SetCarWash(loaderID, interior); 
+
+		ServerData.Instance.SetCarWash(loaderID, interior);
 		ServerSend.CarWashPacket(fromClient, loaderID, interior);
+	}
+
+	public static void DynoRunPacket(int fromClient, Packet packet)
+	{
+		int carLoaderID = packet.ReadInt();
+		ServerData.Instance.dynoCarLoaderID = carLoaderID;
+		ServerSend.DynoRunPacket(fromClient, carLoaderID);
 	}
 	
 	public static void WelderPacket(int fromClient, Packet packet)

@@ -24,6 +24,7 @@ public class ServerData
 	public ModEngineStand engineStand2 = new(null);
 	public float engineStandAngle;
 	public float engineStand2Angle;
+	public int dynoCarLoaderID = -1;
 
 	public Dictionary<int, UserData> connectedClients = new();
 

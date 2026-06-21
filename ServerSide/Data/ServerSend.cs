@@ -480,8 +480,17 @@ public static class ServerSend
 		{
 			_packet.Write(loaderID);
 			_packet.Write(interior);
-			
+
 			SendDataToAll(fromClient, _packet);
+		}
+	}
+
+	public static void DynoRunPacket(int fromClient, int carLoaderID)
+	{
+		using (var packet = new Packet((int)PacketTypes.dynoRun))
+		{
+			packet.Write(carLoaderID);
+			SendDataToAll(fromClient, packet);
 		}
 	}
 

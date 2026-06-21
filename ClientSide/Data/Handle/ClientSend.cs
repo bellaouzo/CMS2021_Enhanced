@@ -441,6 +441,15 @@ public class ClientSend
 		}
 	}
 
+	public static void DynoRunPacket(int carLoaderID)
+	{
+		using (var packet = new Packet((int)PacketTypes.dynoRun))
+		{
+			packet.Write(carLoaderID);
+			SendData(packet);
+		}
+	}
+
 	public static void CarPaint(ModColor modColor)
 	{
 		using (var packet = new Packet((int)PacketTypes.carPaint))
