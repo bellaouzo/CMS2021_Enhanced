@@ -481,7 +481,7 @@ public static class ClientHandle
 			if (!ClientData.Instance.connectedClients.ContainsKey(id)) yield break;
 			var player = ClientData.Instance.connectedClients[id];
 			if (player.userObject != null || player.scene != ClientData.UserData.scene) yield break;
-			if (GameData.Instance?.localPlayer == null) continue;
+			if (ClientData.Instance.playerPrefab == null) continue;
 			player.SpawnPlayer();
 			if (player.userObject != null) yield break;
 		}

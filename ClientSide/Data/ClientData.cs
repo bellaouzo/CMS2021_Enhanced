@@ -83,6 +83,17 @@ public class ClientData
 		if (!SceneManager.IsPlayerSyncScene())
 			return;
 
+		// In non-garage player-sync scenes (salon, barn, junkyard) the garage-set localPlayer
+		// reference is destroyed. Refresh it from the scene's FPSInputController.
+		if (SceneManager.CurrentScene() != GameScene.garage
+		    && GameData.Instance != null
+		    && (GameData.Instance.localPlayer == null || !GameData.Instance.localPlayer.activeInHierarchy))
+		{
+			var fps = Object.FindObjectOfType<FPSInputController>();
+			if (fps != null)
+				GameData.Instance.localPlayer = fps.gameObject;
+		}
+
 		bool canSync = SceneManager.CurrentScene() == GameScene.garage
 			? GameReady
 			: GameData.Instance?.localPlayer != null;

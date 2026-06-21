@@ -73,52 +73,32 @@ public class UserData
 
 		if (ClientData.Instance.playerPrefab == null)
 		{
-			MelonLogger.Error("[CMS21-Together] Cannot spawn player: playerPrefab is null.");
+			MelonLogger.Warning("[CMS21-Together] Cannot spawn player: playerPrefab is null. Will retry.");
 			return;
 		}
 		if (playerID == ClientData.UserData.playerID)
 		{
-			if (GameData.Instance.localPlayer == null)
+			if (GameData.Instance?.localPlayer == null)
 			{
-				MelonLogger.Error("[CMS21-Together] Cannot spawn local player: localPlayer is null.");
+				MelonLogger.Warning("[CMS21-Together] Cannot spawn local player: localPlayer is null.");
 				return;
 			}
 			userObject = GameData.Instance.localPlayer;
 		}
 		else
 		{
-			// Security Rule: Validate GameData.Instance and localPlayer before accessing
-			if (GameData.Instance == null || GameData.Instance.localPlayer == null)
-			{
-				MelonLogger.Warning($"[UserData->SpawnPlayer] GameData.Instance or localPlayer is null. Cannot spawn player {username}. Will retry later.");
-				return;
-			}
-
-			// Security Rule: Validate localPlayer has Collider component
-			var localPlayerCollider = GameData.Instance.localPlayer.GetComponent<Collider>();
-			if (localPlayerCollider == null)
-			{
-				MelonLogger.Warning($"[UserData->SpawnPlayer] Local player has no Collider component. Cannot set up collision ignore for {username}.");
-			}
-
-			// Business Logic: Instantiate player prefab at correct position and rotation
 			userObject = Object.Instantiate(ClientData.Instance.playerPrefab, position.toVector3(), rotation.toQuaternion());
 			userObject.AddComponent<InfoBillboard>();
 			userAnimator = userObject.GetComponent<Animator>();
 			userObject.name = username;
 			baseScaleY = userObject.transform.localScale.y;
-			
-			// Security Rule: Only ignore collision if both colliders exist
+
+			// Collision ignore is best-effort — localPlayer may be null in non-garage scenes
+			var localPlayerCollider = GameData.Instance?.localPlayer?.GetComponent<Collider>();
 			var userObjectCollider = userObject.GetComponent<Collider>();
 			if (localPlayerCollider != null && userObjectCollider != null)
-			{
 				Physics.IgnoreCollision(localPlayerCollider, userObjectCollider);
-			}
-			else
-			{
-				MelonLogger.Warning($"[UserData->SpawnPlayer] One or both players missing Collider. Collision ignore not set for {username}.");
-			}
-			
+
 			MelonLogger.Msg($"[UserData->SpawnPlayer] Spawned player {username} (ID: {playerID}) at position {position.toVector3()}");
 		}
 

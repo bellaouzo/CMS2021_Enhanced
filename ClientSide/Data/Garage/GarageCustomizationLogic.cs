@@ -35,7 +35,9 @@ public static class GarageCustomizationLogic
     {
         if (!Client.Instance.isConnected || !listen || applyingRemote)
         {
-            listen = true;
+            // Only reset listen when it was the sole guard — not when applyingRemote is active,
+            // so ProcessGarageLookQueue retains control of the listen flag throughout the loop.
+            if (!applyingRemote) listen = true;
             return;
         }
 

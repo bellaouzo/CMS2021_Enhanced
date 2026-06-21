@@ -117,19 +117,21 @@ public static class UICore
 	
 	public static void ShowPanel(GameObject panelToShow, bool destroyChildren=false)
 	{
-		if (destroyChildren)
+		if (panelToShow == null) return;
+
+		if (destroyChildren && Active_Panel != null)
 			DestroyChildren(Active_Panel.transform);
 
-		Active_Panel =  panelToShow;
+		Active_Panel = panelToShow;
 		if (TMP_Window)
 			Object.Destroy(TMP_Window);
 		if (TMP_Info_Window)
 			Object.Destroy(TMP_Info_Window);
-		
-		V_Main.gameObject.SetActive(false);
-		MP_Main.gameObject.SetActive(false);
-		MP_Host.gameObject.SetActive(false);
-		MP_Lobby.gameObject.SetActive(false);
+
+		if (V_Main != null) V_Main.SetActive(false);
+		if (MP_Main != null) MP_Main.SetActive(false);
+		if (MP_Host != null) MP_Host.SetActive(false);
+		if (MP_Lobby != null) MP_Lobby.SetActive(false);
 
 		panelToShow.SetActive(true);
 	}

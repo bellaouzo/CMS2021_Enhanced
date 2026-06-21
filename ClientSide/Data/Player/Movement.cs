@@ -93,11 +93,22 @@ public static class Movement
 	{
 		foreach (var client in ClientData.Instance.connectedClients.Values)
 		{
-			if (client == null) continue;
-			if (client.userObject == null || client.userAnimator == null) continue;
+			if (client == null || client.userObject == null) continue;
+
+			// Always lerp the crouch scale so it completes smoothly every frame,
+			// not only when position packets arrive.
+			float targetScaleY = client.isCrouching ? crouchScaleY : normalScaleY;
+			float desiredY = client.baseScaleY * targetScaleY;
+			var scale = client.userObject.transform.localScale;
+			if (Mathf.Abs(scale.y - desiredY) > 0.0001f)
+			{
+				scale.y = Mathf.Lerp(scale.y, desiredY, Time.deltaTime * 12f);
+				client.userObject.transform.localScale = scale;
+			}
+
+			if (client.userAnimator == null) continue;
 
 			float elapsedTime = Time.time - client.lastUpdateTime;
-
 			if (elapsedTime > 0.15f)
 			{
 				client.userAnimator.SetFloat("Vertical", Mathf.Lerp(client.userAnimator.GetFloat("Vertical"), 0, Time.deltaTime * 10f));

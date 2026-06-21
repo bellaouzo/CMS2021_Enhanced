@@ -233,7 +233,7 @@ public static class SceneManager
 		ClientData.DestroyAllRemotePlayers();
 
 		if (Client.Instance.isConnected)
-			Client.Instance.Disconnect();
+			Client.Instance.Disconnect(true); // server already closed — skip sending disconnect packet
 
 		ClientData.GameReady = false;
 	}

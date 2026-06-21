@@ -17,12 +17,19 @@ public static class CarSpawnManager
 {
 	public static IEnumerator LoadCar(NewCarData carData, int carLoaderID, int placeNo)
 	{
-		if (ClientData.Instance.loadedCars.ContainsKey(carLoaderID)) yield break;
+		// Skip only if the exact same car is already tracked; a different car in the same slot
+		// means we returned from the salon (or a resync) and must re-send.
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var existing)
+		    && existing.carID == carData.carToLoad)
+			yield break;
+		ClientData.Instance.loadedCars.Remove(carLoaderID);
 
 		var car = new ModCar(carLoaderID, carData.carToLoad, carData.configVersion, placeNo, carData.customerCar);
 		ClientSend.LoadCarPacket(new ModNewCarData(carData, placeNo), carLoaderID);
 		
-		while (!GameData.Instance.carLoaders[carLoaderID].IsCarLoaded()) yield return YieldInstructions.WaitForEndOfFrame;
+		while (GameData.Instance == null || GameData.Instance.carLoaders == null
+		       || !GameData.Instance.carLoaders[carLoaderID].IsCarLoaded())
+			yield return YieldInstructions.WaitForEndOfFrame;
 		yield return YieldInstructions.WaitForEndOfFrame;
 		yield return YieldInstructions.WaitForEndOfFrame;
 		
@@ -41,7 +48,10 @@ public static class CarSpawnManager
 		yield return new WaitForEndOfFrame();
 		yield return new WaitForEndOfFrame();
 
-		if (ClientData.Instance.loadedCars.ContainsKey(carLoaderID)) yield break;
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var existingJob)
+		    && existingJob.carID == name)
+			yield break;
+		ClientData.Instance.loadedCars.Remove(carLoaderID);
 		yield return YieldInstructions.WaitForEndOfFrame;
 
 		while (!carLoader.IsCarLoaded()) yield return YieldInstructions.WaitForEndOfFrame;
