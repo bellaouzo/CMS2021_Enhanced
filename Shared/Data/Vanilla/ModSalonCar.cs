@@ -7,6 +7,7 @@ public class ModSalonCar
 {
 	public string carId;
 	public int version;
+	public int slotIndex = -1;
 
 	public ModSalonCar() { }
 
@@ -14,5 +15,13 @@ public class ModSalonCar
 	{
 		this.carId = carId;
 		this.version = version;
+		this.slotIndex = -1;
+	}
+
+	public ModSalonCar(string carId, int version, int slotIndex)
+	{
+		this.carId = carId;
+		this.version = version;
+		this.slotIndex = slotIndex;
 	}
 }

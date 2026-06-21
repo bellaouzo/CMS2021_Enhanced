@@ -536,11 +536,11 @@ public class ClientSend
 		}
 	}
 
-	public static void SalonCarPacket(string carId, int version)
+	public static void SalonCarPacket(string carId, int version, int slotIndex = -1)
 	{
 		using (var packet = new Packet((int)PacketTypes.salonCar))
 		{
-			packet.Write(new ModSalonCar(carId, version));
+			packet.Write(new ModSalonCar(carId, version, slotIndex));
 			SendData(packet);
 		}
 	}

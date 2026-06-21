@@ -35,11 +35,8 @@ public static class CarWashLogic
 	[HarmonyPostfix]
 	public static void DTweenExteriorDustWashHook(float targetDust, float targetWash, float time, CarLoader __instance)
 	{
-		if(!Client.Instance.isConnected || !listen) 
-		{ 
-			listen = true; 
+		if(!Client.Instance.isConnected || !listen)
 			return;
-		}
 
 		if (__instance == null || __instance.gameObject == null || __instance.gameObject.name.Length < 11)
 		{
@@ -62,11 +59,8 @@ public static class CarWashLogic
 	[HarmonyPrefix]
 	public static void DoWorkAnimHook(CarLoader carLoader)
 	{
-		if(!Client.Instance.isConnected || !listen) 
-		{ 
-			listen = true; 
+		if(!Client.Instance.isConnected || !listen)
 			return;
-		}
 
 		if (carLoader == null || carLoader.gameObject == null || carLoader.gameObject.name.Length < 11)
 		{
@@ -91,10 +85,7 @@ public static class CarWashLogic
 	public static void OutdoorCarWashHook(CarLoader carLoader)
 	{
 		if (!Client.Instance.isConnected || !listen)
-		{
-			listen = true;
 			return;
-		}
 
 		if (carLoader == null || carLoader.gameObject == null || carLoader.gameObject.name.Length < 11)
 		{

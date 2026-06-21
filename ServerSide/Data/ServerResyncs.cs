@@ -127,11 +127,13 @@ public static class ServerResyncs
 
 	public static void ResyncSalon(int fromClient)
 	{
-		if (ServerData.Instance.salonCar == null || string.IsNullOrEmpty(ServerData.Instance.salonCar.carId))
-			return;
+		if (ServerData.Instance.salonCar != null && !string.IsNullOrEmpty(ServerData.Instance.salonCar.carId))
+			ServerSend.SalonCarPacket(fromClient, ServerData.Instance.salonCar, resync: true);
 
-		ServerSend.SalonCarPacket(fromClient, ServerData.Instance.salonCar, resync: true);
-		MelonLogger.Msg("[ServerResyncs] Sent salon car resync.");
+		foreach (var kvp in ServerData.Instance.salonCatalog)
+			ServerSend.SalonCarPacket(fromClient, kvp.Value, resync: true);
+
+		MelonLogger.Msg("[ServerResyncs] Sent salon resync.");
 	}
 
 	public static void ResyncWheelBalancer(int fromClient)

@@ -580,7 +580,10 @@ public static class ServerHandle
 	public static void SalonCarPacket(int fromClient, Packet packet)
 	{
 		var data = packet.Read<ModSalonCar>();
-		ServerData.Instance.salonCar = data;
+		if (data.slotIndex >= 0)
+			ServerData.Instance.salonCatalog[data.slotIndex] = data;
+		else
+			ServerData.Instance.salonCar = data;
 		ServerSend.SalonCarPacket(fromClient, data);
 	}
 
