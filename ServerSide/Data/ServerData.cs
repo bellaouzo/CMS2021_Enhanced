@@ -224,7 +224,9 @@ public class ServerData
 	public void UpdateFluid(ModFluidData fluid, int carLoaderID)
 	{
 		if (!CarSpawnDatas.ContainsKey(carLoaderID)) return;
-		CarSpawnDatas[carLoaderID].FluidsData.UpdateFluid(fluid);
+		var fluids = CarSpawnDatas[carLoaderID].FluidsData;
+		fluids.UpdateFluid(fluid);
+		CarSpawnDatas[carLoaderID].FluidsData = fluids;
 	}
 
 	public void SetEngineOnStand(ModGroupItem engineGroup, Vector3Serializable position, bool alt)

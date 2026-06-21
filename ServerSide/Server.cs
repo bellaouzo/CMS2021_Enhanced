@@ -233,7 +233,12 @@ public class Server
 			{ (int)PacketTypes.selectedJob, ServerHandle.SelectedJobPacket },
 			{ (int)PacketTypes.endJob, ServerHandle.EndJobPacket },
 			{ (int)PacketTypes.playerInCar, ServerHandle.PlayerInCarPacket },
-			{ (int)PacketTypes.carEngineSound, ServerHandle.CarEngineSoundPacket }
+			{ (int)PacketTypes.carEngineSound, ServerHandle.CarEngineSoundPacket },
+
+			{ (int)PacketTypes.dynoRun, ServerHandle.DynoRunPacket },
+			{ (int)PacketTypes.wheelAlignment, ServerHandle.WheelAlignmentPacket },
+			{ (int)PacketTypes.headlampAlignment, ServerHandle.HeadlampAlignmentPacket },
+			{ (int)PacketTypes.garageCustomization, ServerHandle.GarageCustomizationPacket }
 		};
 	}
 }
