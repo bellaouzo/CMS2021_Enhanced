@@ -515,6 +515,17 @@ public static class ServerSend
 		}
 	}
 
+	public static void SkillChangePacket(int fromClient, string id, List<bool> skill, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.skillChange))
+		{
+			packet.Write(id);
+			packet.Write(skill);
+			if (resync) SendData(fromClient, packet);
+			else        SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void GarageCustomizationPacket(int fromClient, int sectionIndex, int materialIndex, bool resync = false)
 	{
 		using (var packet = new Packet((int)PacketTypes.garageCustomization))

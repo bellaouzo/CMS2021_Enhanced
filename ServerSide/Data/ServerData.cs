@@ -30,6 +30,7 @@ public class ServerData
 
 	public Dictionary<string, GarageUpgrade> garageUpgrades = new();
 	public Dictionary<int, int> garageLook = new();
+	public Dictionary<string, List<bool>> sharedSkills = new();
 	public List<ModGroupItem> groupItems = new();
 	public List<ModItem> items = new();
 

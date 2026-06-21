@@ -87,10 +87,13 @@ public static class ServerHandle
 	public static void SkillChangePacket(int fromClient, Packet packet)
 	{
 		string playerID = packet.Read<string>();
-		string id = packet.Read<string>();
+		string id       = packet.Read<string>();
 		List<bool> skill = packet.Read<List<bool>>();
 
 		SavesManager.ModSaves[SavesManager.currentSaveIndex].playerInfos.First(p => playerID == p.id).UpdateSkill(id, skill);
+
+		ServerData.Instance.sharedSkills[id] = skill;
+		ServerSend.SkillChangePacket(fromClient, id, skill);
 	}
 
 	public static void PositionPacket(int fromClient, Packet packet)
@@ -634,6 +637,9 @@ public static class ServerHandle
 				break;
 			case PacketTypes.garageCustomization:
 				ServerResyncs.ResyncGarageLook(fromClient);
+				break;
+			case PacketTypes.skillChange:
+				ServerResyncs.ResyncSkills(fromClient);
 				break;
 			case PacketTypes.engineStandSetGroup:
 				bool alt = packet.Read<bool>();

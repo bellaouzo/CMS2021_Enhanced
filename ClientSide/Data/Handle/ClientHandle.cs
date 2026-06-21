@@ -475,6 +475,38 @@ public static class ClientHandle
 		packet.Dispose();
 	}
 
+	public static void SkillChangePacket(Packet _packet)
+	{
+		string id        = _packet.Read<string>();
+		List<bool> skill = _packet.Read<List<bool>>();
+		MelonCoroutines.Start(ApplySkillChange(id, skill));
+	}
+
+	private static System.Collections.IEnumerator ApplySkillChange(string id, List<bool> skill)
+	{
+		while (!ClientData.GameReady)
+			yield return new UnityEngine.WaitForSeconds(0.25f);
+		yield return new UnityEngine.WaitForEndOfFrame();
+
+		if (GameData.Instance?.upgradeTools?.upgradeSystem == null)
+		{
+			MelonLogger.Warning("[ClientHandle->ApplySkillChange] upgradeSystem is null.");
+			yield break;
+		}
+
+		CMS21Together.ClientSide.Data.Garage.Campaign.SkillUpgradeHook.listen = false;
+		var upgradeSystem = GameData.Instance.upgradeTools.upgradeSystem;
+
+		for (int lvl = 0; lvl < skill.Count; lvl++)
+		{
+			if (skill[lvl])
+				upgradeSystem.UnlockUpgrade(id, lvl, UpgradeType.Money);
+		}
+
+		CMS21Together.ClientSide.Data.Garage.Campaign.SkillUpgradeHook.listen = true;
+		MelonLogger.Msg($"[ClientHandle->ApplySkillChange] Applied skill: {id}");
+	}
+
 	public static void CarEngineSoundPacket(Packet packet)
 	{
 		var playerID = packet.ReadInt();

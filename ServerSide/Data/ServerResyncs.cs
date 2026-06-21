@@ -116,4 +116,12 @@ public static class ServerResyncs
 
 		MelonLogger.Msg("[ServerResyncs] Sent garage look resync.");
 	}
+
+	public static void ResyncSkills(int fromClient)
+	{
+		foreach (var kvp in ServerData.Instance.sharedSkills)
+			ServerSend.SkillChangePacket(fromClient, kvp.Key, kvp.Value, resync: true);
+
+		MelonLogger.Msg("[ServerResyncs] Sent skills resync.");
+	}
 }

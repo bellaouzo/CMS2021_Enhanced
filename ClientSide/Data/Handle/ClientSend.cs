@@ -490,6 +490,15 @@ public class ClientSend
 		}
 	}
 
+	public static void ResyncSkills()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.skillChange);
+			SendData(packet);
+		}
+	}
+
 	public static void CarPaint(ModColor modColor)
 	{
 		using (var packet = new Packet((int)PacketTypes.carPaint))
