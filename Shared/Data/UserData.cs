@@ -37,6 +37,7 @@ public class UserData
 
 	[JsonIgnore] [NonSerialized] public GameObject userObject;
 	[JsonIgnore] [NonSerialized] public float lastUpdateTime;
+	[JsonIgnore] [NonSerialized] public float baseScaleY = 0.095f;
 
 	public UserData()
 	{
@@ -105,6 +106,7 @@ public class UserData
 			userObject.AddComponent<InfoBillboard>();
 			userAnimator = userObject.GetComponent<Animator>();
 			userObject.name = username;
+			baseScaleY = userObject.transform.localScale.y;
 			
 			// Security Rule: Only ignore collision if both colliders exist
 			var userObjectCollider = userObject.GetComponent<Collider>();

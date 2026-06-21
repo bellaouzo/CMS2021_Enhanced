@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using CMS21Together.ClientSide.Data.Garage.Tools;
+using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using CMS21Together.Shared.Data.Vanilla;
 using CMS21Together.Shared.Data.Vanilla.Cars;
@@ -10,6 +12,19 @@ namespace CMS21Together.ClientSide.Data.Garage.Car;
 
 public static class PartsUpdater
 {
+	private static IEnumerator WaitForCarReadyOrResync(int carLoaderID)
+	{
+		if (!ClientData.Instance.loadedCars.ContainsKey(carLoaderID))
+			yield break;
+
+		yield return LoadWait.WaitForCarReady(carLoaderID);
+		if (LoadWait.LastResult == LoadWaitResult.Timeout)
+		{
+			MelonLogger.Warning($"[PartsUpdater] Car {carLoaderID} not ready in time. Requesting resync.");
+			ClientSend.ResyncCar(carLoaderID);
+		}
+	}
+
 	public static IEnumerator UpdatePartScripts(ModPartScript partScript, int carLoaderID)
 	{
 		while (!ClientData.GameReady)
@@ -44,9 +59,12 @@ public static class PartsUpdater
 			yield break;
 		}
 		
-		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var _car))
-			while (!_car.isReady)
-				yield return new WaitForSeconds(0.25f);
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out _))
+		{
+			yield return WaitForCarReadyOrResync(carLoaderID);
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				yield break;
+		}
 		yield return new WaitForEndOfFrame();
 
 		//MelonLogger.Msg("[PartsUpdater->UpdatePartScripts] Car ready, updating..");
@@ -160,9 +178,12 @@ public static class PartsUpdater
 
 	public static IEnumerator UpdateBodyParts(ModCarPart carPart, int carLoaderID)
 	{
-		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var _car))
-			while (!_car.isReady)
-				yield return new WaitForSeconds(0.25f);
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out _))
+		{
+			yield return WaitForCarReadyOrResync(carLoaderID);
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				yield break;
+		}
 		yield return new WaitForEndOfFrame();
 
 		MelonLogger.Msg("[PartsUpdater->UpdateBodyParts] Car ready, updating..");
@@ -239,9 +260,12 @@ public static class PartsUpdater
 
 	public static IEnumerator UpdateFluid(ModFluidData fluid, int carLoaderID)
 	{
-		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var _car))
-			while (!_car.isReady)
-				yield return new WaitForSeconds(0.25f);
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out _))
+		{
+			yield return WaitForCarReadyOrResync(carLoaderID);
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				yield break;
+		}
 		yield return new WaitForEndOfFrame();
 
 		PartUpdateHooks.listen = false;

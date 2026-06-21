@@ -125,6 +125,15 @@ public static class ServerResyncs
 		MelonLogger.Msg("[ServerResyncs] Sent door state resync.");
 	}
 
+	public static void ResyncSalon(int fromClient)
+	{
+		if (ServerData.Instance.salonCar == null || string.IsNullOrEmpty(ServerData.Instance.salonCar.carId))
+			return;
+
+		ServerSend.SalonCarPacket(fromClient, ServerData.Instance.salonCar, resync: true);
+		MelonLogger.Msg("[ServerResyncs] Sent salon car resync.");
+	}
+
 	public static void ResyncWheelBalancer(int fromClient)
 	{
 		var balancer = ServerData.Instance.wheelBalancer;

@@ -5,6 +5,7 @@ using System.Linq;
 using CMS.UI.Windows;
 using CMS21Together.ClientSide.Data.Garage.Car;
 using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using CMS21Together.Shared.Data.Vanilla;
 using CMS21Together.Shared.Data.Vanilla.Cars;
@@ -89,24 +90,37 @@ public static class EngineStand
 	[HarmonyPostfix]
 	public static void SetGroupOnEngineStand(GroupItem groupItem, bool withFade, EngineStandLogic __instance)
 	{
-		if(!Client.Instance.isConnected) {  return; }
-		
-		if (groupItem == null || groupItem.ItemList == null) return;
-		ModEngineStand stand;
-		if (__instance.gameObject.name == "Engine_stand_2")
+		try
 		{
-			ClientData.Instance.engineStand2 = new ModEngineStand(GameData.Instance.engineStandLogic2);
-			stand = ClientData.Instance.engineStand2;
-			stand.engineGroupItem = new ModGroupItem(groupItem);
-		}
-		else
-		{
-			ClientData.Instance.engineStand = new ModEngineStand(GameData.Instance.engineStandLogic);
-			stand = ClientData.Instance.engineStand;
-			stand.engineGroupItem = new ModGroupItem(groupItem);
-		}
+			if (Client.Instance == null || !Client.Instance.isConnected || ClientData.Instance == null) return;
+			if (GameData.Instance == null || !GameData.isReady) return;
+			if (__instance == null) return;
+			if (groupItem == null) return;
 
-		MelonCoroutines.Start(HandleEngineStand(stand));
+			bool isAlt = __instance.gameObject.name == "Engine_stand_2";
+			EngineStandLogic logic = isAlt ? GameData.Instance.engineStandLogic2 : GameData.Instance.engineStandLogic;
+			if (logic == null) return;
+
+			ModEngineStand stand;
+			if (isAlt)
+			{
+				ClientData.Instance.engineStand2 = new ModEngineStand(logic);
+				stand = ClientData.Instance.engineStand2;
+				stand.engineGroupItem = new ModGroupItem(groupItem);
+			}
+			else
+			{
+				ClientData.Instance.engineStand = new ModEngineStand(logic);
+				stand = ClientData.Instance.engineStand;
+				stand.engineGroupItem = new ModGroupItem(groupItem);
+			}
+
+			MelonCoroutines.Start(HandleEngineStand(stand));
+		}
+		catch (Exception ex)
+		{
+			MelonLogger.Warning($"[EngineStand->SetGroupOnEngineStand] Skipped during load: {ex.Message}");
+		}
 	}
 
 	private static IEnumerator HandleEngineStand(ModEngineStand stand)
@@ -149,19 +163,27 @@ public static class EngineStand
 	public static IEnumerator TakeOnEngineFromStand(ModGroupItem engineGroup, Vector3Serializable position, bool alt)
 	{
 		MelonLogger.Msg($"Received engine from server! {alt}");
-		while (!GameData.isReady)
-			yield return new WaitForSeconds(0.25f);
+		yield return LoadWait.WaitForGameDataReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
 		yield return new WaitForEndOfFrame();
+
+		EngineStandLogic logic = alt ? GameData.Instance.engineStandLogic2 : GameData.Instance.engineStandLogic;
+		if (logic == null)
+		{
+			MelonLogger.Warning("[EngineStand->TakeOnEngineFromStand] Engine stand logic is null.");
+			yield break;
+		}
 
 		ModEngineStand stand;
 		if (alt)
 		{
-			ClientData.Instance.engineStand2 = new ModEngineStand(GameData.Instance.engineStandLogic2);
+			ClientData.Instance.engineStand2 = new ModEngineStand(logic);
 			stand = ClientData.Instance.engineStand2;
 		}
 		else
 		{
-			ClientData.Instance.engineStand = new ModEngineStand(GameData.Instance.engineStandLogic);
+			ClientData.Instance.engineStand = new ModEngineStand(logic);
 			stand = ClientData.Instance.engineStand;
 		}
 		

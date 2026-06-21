@@ -72,6 +72,22 @@ public static class WheelBalancer
         {
             while (!ClientData.GameReady)
                 yield return new WaitForSeconds(0.25f);
+
+            float waited = 0f;
+            const float timeout = 5f;
+            while (GameData.Instance?.wheelBalancer == null && waited < timeout)
+            {
+                waited += 0.25f;
+                yield return new WaitForSeconds(0.25f);
+            }
+
+            if (GameData.Instance?.wheelBalancer == null)
+            {
+                MelonLogger.Warning("[WheelBalancer->ApplyRemove] wheelBalancer is null. Skipping.");
+                listen = true;
+                yield break;
+            }
+
             yield return new WaitForEndOfFrame();
 
             listen = false;
@@ -79,8 +95,24 @@ public static class WheelBalancer
             var clearRoutine = GameData.Instance.wheelBalancer.Clear();
             if (clearRoutine != null)
             {
-                while (clearRoutine.MoveNext())
+                while (true)
+                {
+                    bool moved;
+                    try
+                    {
+                        moved = clearRoutine.MoveNext();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MelonLogger.Warning($"[WheelBalancer->ApplyRemove] Clear failed: {ex.Message}");
+                        break;
+                    }
+
+                    if (!moved)
+                        break;
+
                     yield return clearRoutine.Current;
+                }
             }
             listen = true;
         }

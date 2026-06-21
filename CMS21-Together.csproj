@@ -82,6 +82,7 @@
         <Compile Include="ClientSide\Data\NewUI\UIMenu.cs" />
         <Compile Include="ClientSide\Data\NewUI\UIUtils.cs" />
         <Compile Include="ClientSide\Data\Player\CrouchSync.cs" />
+        <Compile Include="ClientSide\Data\Salon\SalonSyncLogic.cs" />
         <Compile Include="ClientSide\Data\Player\InfoBillboard.cs" />
         <Compile Include="ClientSide\Data\Player\CarEnterExit.cs" />
         <Compile Include="ClientSide\Data\Player\Inventory.cs" />
@@ -157,6 +158,7 @@
         <Compile Include="Shared\Data\Vanilla\Jobs\ModNewJobWrapper.cs" />
         <Compile Include="Shared\Data\Vanilla\ModColor.cs" />
         <Compile Include="Shared\Data\Vanilla\ModDoorState.cs" />
+        <Compile Include="Shared\Data\Vanilla\ModSalonCar.cs" />
         <Compile Include="Shared\Data\Vanilla\ModGarageLook.cs" />
         <Compile Include="Shared\Data\Vanilla\ModDifficultyLevel.cs" />
         <Compile Include="Shared\Data\Vanilla\ModGroupItem.cs" />
@@ -173,6 +175,7 @@
         <Compile Include="Shared\Data\Vanilla\ModStats.cs" />
         <Compile Include="Shared\Data\Vector3Serializable.cs" />
         <Compile Include="Shared\Data\VersionStatus.cs" />
+        <Compile Include="Shared\LoadWait.cs" />
         <Compile Include="Shared\SceneManager.cs" />
         <Compile Include="Shared\Packet.cs" />
         <Compile Include="Shared\PacketTypes.cs" />

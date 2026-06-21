@@ -1,4 +1,5 @@
 ﻿using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ public static class Rotation
 	public static void UpdateRotation(int id, QuaternionSerializable rotation)
 	{
 		if (!ClientData.Instance.connectedClients.ContainsKey(id)) return;
-		if (!GameData.isReady) return;
+		if (!Movement.CanSyncRemotePlayer()) return;
 
 		var player = ClientData.Instance.connectedClients[id];
 		if (player.scene != ClientData.UserData.scene) return;

@@ -5,6 +5,7 @@ using System.Linq;
 using CMS;
 using CMS.PartModules;
 using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using CMS21Together.Shared.Data.Vanilla.Cars;
 using MelonLoader;
@@ -73,8 +74,13 @@ public static class CarSpawnManager
 
 	public static IEnumerator LoadCarFromServer(ModNewCarData data, int carLoaderID)
 	{
-		while (!ClientData.GameReady)
-			yield return new WaitForSeconds(0.25f);
+		yield return LoadWait.WaitForClientGameReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		yield return LoadWait.WaitForGameDataReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
 
 		yield return new WaitForEndOfFrame();
 
@@ -91,8 +97,17 @@ public static class CarSpawnManager
 		MainMod.StartCoroutine(carLoader.LoadCarFromFile(carData));
 		var car = new ModCar(carLoaderID, data.carToLoad, data.configVersion);
 		ClientData.Instance.loadedCars[carLoaderID] = car;
-		MelonCoroutines.Start(PartsReferencer.GetPartReferences(ClientData.Instance.loadedCars[carLoaderID]));
 
-		MelonLogger.Msg($"[CarManager->LoadCarFromServer] Loading {data.carToLoad} from server...");
+		yield return LoadWait.WaitForCarLoaded(carLoaderID);
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+		{
+			MelonLogger.Warning($"[CarSpawnManager->LoadCarFromServer] Car load timed out for loader {carLoaderID}. Requesting resync.");
+			ClientData.Instance.loadedCars.Remove(carLoaderID);
+			ClientSend.ResyncCar(carLoaderID);
+			yield break;
+		}
+
+		MelonCoroutines.Start(PartsReferencer.GetPartReferences(ClientData.Instance.loadedCars[carLoaderID]));
+		MelonLogger.Msg($"[CarSpawnManager->LoadCarFromServer] Loading {data.carToLoad} from server...");
 	}
 }

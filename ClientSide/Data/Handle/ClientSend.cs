@@ -509,6 +509,15 @@ public class ClientSend
 		}
 	}
 
+	public static void ResyncSalon()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.salonCar);
+			SendData(packet);
+		}
+	}
+
 	public static void ResyncWheelBalancer()
 	{
 		using (var packet = new Packet((int)PacketTypes.resync))
@@ -523,6 +532,15 @@ public class ClientSend
 		using (var packet = new Packet((int)PacketTypes.doorState))
 		{
 			packet.Write(new ModDoorState(doorId, isOpen, carLoaderID));
+			SendData(packet);
+		}
+	}
+
+	public static void SalonCarPacket(string carId, int version)
+	{
+		using (var packet = new Packet((int)PacketTypes.salonCar))
+		{
+			packet.Write(new ModSalonCar(carId, version));
 			SendData(packet);
 		}
 	}

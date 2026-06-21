@@ -63,9 +63,8 @@ namespace CMS21Together
 			{
 				ClientData.UserData.UpdateScene(sceneName);
 				
-				if (SceneManager.CurrentScene() == GameScene.garage && ClientData.Instance.playerPrefab == null)
+				if (SceneManager.IsPlayerSyncScene() && ClientData.Instance.playerPrefab == null)
 					ClientData.Instance.LoadPlayerPrefab();
-
 			}
 		}
 
@@ -86,7 +85,7 @@ namespace CMS21Together
 
 			if (!Client.Instance.isConnected) return;
 
-			if (SceneManager.CurrentScene() == GameScene.garage)
+			if (SceneManager.IsPlayerSyncScene())
 				ClientData.Instance.UpdateClient();
 
 			if (ApiCalls.useSteam)

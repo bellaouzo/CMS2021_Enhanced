@@ -1,4 +1,5 @@
 ﻿using System;
+using CMS21Together.ClientSide;
 using CMS21Together.Shared;
 using MelonLoader;
 using Steamworks;
@@ -31,7 +32,10 @@ public class ClientSteam : ConnectionManager
             Connected = false;
             OnDisconnected(info);
             MelonLogger.Msg("[ClientSteam->OnConnectionChanged] Disconnected.");
-            Close();
+            if (Client.Instance != null && Client.Instance.isConnected)
+                Client.Instance.Disconnect(true);
+            else
+                Close();
         }
         else
         {

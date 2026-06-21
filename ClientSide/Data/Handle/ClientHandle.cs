@@ -39,6 +39,7 @@ public static class ClientHandle
 
 		MelonLogger.Msg($"[ClientHandle->DisconnectPacket] You've been disconnected from server: {message}");
 		Client.LastDisconnectMessage = message;
+		ClientData.DestroyAllRemotePlayers();
 		if (ClientData.UserData.scene == GameScene.menu)
 			UICustomPanel.CreateInfoPanel($"You've been disconnected from server: {message}");
 		Client.Instance.Disconnect(true);
@@ -249,7 +250,7 @@ public static class ClientHandle
 		int carLoaderID = _packet.ReadInt();
 		bool interior = _packet.Read<bool>();
 
-		MelonCoroutines.Start(Garage.Tools.CarWashLogic.WashCar(carLoaderID, interior));
+		Garage.Tools.CarWashLogic.QueueWash(carLoaderID, interior);
 	}
 
 	public static void DynoRunPacket(Packet _packet)
@@ -283,7 +284,13 @@ public static class ClientHandle
 	public static void DoorStatePacket(Packet _packet)
 	{
 		var state = _packet.Read<ModDoorState>();
-		MelonCoroutines.Start(Garage.DoorSyncLogic.ApplyDoorState(state));
+		Garage.DoorSyncLogic.QueueDoorState(state);
+	}
+
+	public static void SalonCarPacket(Packet _packet)
+	{
+		var data = _packet.Read<ModSalonCar>();
+		Salon.SalonSyncLogic.QueueSalonCar(data);
 	}
 	
 	public static void CarPaintPacket(Packet _packet)
@@ -459,8 +466,24 @@ public static class ClientHandle
 		}
 		else if (ClientData.Instance.connectedClients[id].userObject == null)
 		{
-			// Business Logic: Spawn player only if not already spawned
 			ClientData.Instance.connectedClients[id].SpawnPlayer();
+			if (ClientData.Instance.connectedClients[id].userObject == null
+			    && SceneManager.IsPlayerSyncScene(scene))
+				MelonCoroutines.Start(RetrySpawnPlayer(id));
+		}
+	}
+
+	private static System.Collections.IEnumerator RetrySpawnPlayer(int id)
+	{
+		for (int i = 0; i < 20; i++)
+		{
+			yield return new WaitForSeconds(0.25f);
+			if (!ClientData.Instance.connectedClients.ContainsKey(id)) yield break;
+			var player = ClientData.Instance.connectedClients[id];
+			if (player.userObject != null || player.scene != ClientData.UserData.scene) yield break;
+			if (GameData.Instance?.localPlayer == null) continue;
+			player.SpawnPlayer();
+			if (player.userObject != null) yield break;
 		}
 	}
 

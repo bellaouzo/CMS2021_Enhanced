@@ -1,6 +1,8 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using CMS;
 using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
@@ -12,21 +14,33 @@ public static class CarWashLogic
 {
 	public static bool listen = true;
 
-	public static void Reset() => listen = true;
-	
+	private static readonly Dictionary<int, bool> pendingWashes = new();
+	private static bool processRoutineRunning;
+
+	public static void Reset()
+	{
+		listen = true;
+		pendingWashes.Clear();
+		processRoutineRunning = false;
+	}
+
+	public static void QueueWash(int carLoaderID, bool interior)
+	{
+		pendingWashes[carLoaderID] = interior;
+		if (!processRoutineRunning)
+			MelonCoroutines.Start(ProcessWashQueue());
+	}
+
 	[HarmonyPatch(typeof(CarLoader), nameof(CarLoader.TweenExteriorDustWash))]
 	[HarmonyPostfix]
 	public static void DTweenExteriorDustWashHook(float targetDust, float targetWash, float time, CarLoader __instance)
 	{
-		// Business Rule: Only sync if connected and listening flag is enabled
 		if(!Client.Instance.isConnected || !listen) 
 		{ 
 			listen = true; 
 			return;
 		}
 
-		// Observation: Extract carLoaderID from gameObject name (format: "CarLoader_X")
-		// Security Rule: Validate name length before accessing character
 		if (__instance == null || __instance.gameObject == null || __instance.gameObject.name.Length < 11)
 		{
 			MelonLogger.Warning("[CarWashLogic->DTweenExteriorDustWashHook] Invalid CarLoader gameObject name.");
@@ -35,7 +49,6 @@ public static class CarWashLogic
 
 		int carLoaderID = __instance.gameObject.name[10] - '0' - 1;
 		
-		// Business Rule: Validate carLoaderID is within valid range
 		if (carLoaderID < 0 || carLoaderID >= 5)
 		{
 			MelonLogger.Warning($"[CarWashLogic->DTweenExteriorDustWashHook] Invalid carLoaderID: {carLoaderID}");
@@ -49,14 +62,12 @@ public static class CarWashLogic
 	[HarmonyPrefix]
 	public static void DoWorkAnimHook(CarLoader carLoader)
 	{
-		// Business Rule: Only sync if connected and listening flag is enabled
 		if(!Client.Instance.isConnected || !listen) 
 		{ 
 			listen = true; 
 			return;
 		}
 
-		// Security Rule: Validate carLoader is not null
 		if (carLoader == null || carLoader.gameObject == null || carLoader.gameObject.name.Length < 11)
 		{
 			MelonLogger.Warning("[CarWashLogic->DoWorkAnimHook] Invalid CarLoader reference.");
@@ -65,7 +76,6 @@ public static class CarWashLogic
 
 		int carLoaderID = carLoader.gameObject.name[10] - '0' - 1;
 		
-		// Business Rule: Validate carLoaderID is within valid range
 		if (carLoaderID < 0 || carLoaderID >= 5)
 		{
 			MelonLogger.Warning($"[CarWashLogic->DoWorkAnimHook] Invalid carLoaderID: {carLoaderID}");
@@ -104,62 +114,63 @@ public static class CarWashLogic
 		MelonLogger.Msg($"[CarWashLogic->OutdoorCarWashHook] Outdoor wash for carLoaderID: {carLoaderID}");
 	}
 
-	/// <summary>
-	/// Handles car wash synchronization from server.
-	/// Applies wash effect to the specified car loader.
-	/// </summary>
-	/// <param name="carLoaderID">The ID of the car loader to wash (0-4)</param>
-	/// <param name="interior">Whether to wash interior (true) or exterior (false)</param>
-	public static IEnumerator WashCar(int carLoaderID, bool interior)
+	private static IEnumerator ProcessWashQueue()
 	{
-		// Business Rule: Wait for game to be ready before processing
-		while (!ClientData.GameReady)
+		processRoutineRunning = true;
+
+		while (pendingWashes.Count > 0)
 		{
-			// Security Rule: Check if client disconnected during wait
-			if (!Client.Instance.isConnected)
+			yield return LoadWait.WaitForClientGameReady();
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				break;
+
+			yield return LoadWait.WaitForGameDataReady();
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				break;
+
+			var keys = new List<int>(pendingWashes.Keys);
+			foreach (var carLoaderID in keys)
 			{
-				MelonLogger.Warning("[CarWashLogic->WashCar] Client disconnected while waiting for game ready.");
-				yield break;
+				if (!pendingWashes.TryGetValue(carLoaderID, out var interior))
+					continue;
+
+				yield return LoadWait.WaitForCarLoaded(carLoaderID);
+				if (LoadWait.LastResult != LoadWaitResult.Success)
+				{
+					pendingWashes.Remove(carLoaderID);
+					continue;
+				}
+
+				yield return ApplyWash(carLoaderID, interior);
+				pendingWashes.Remove(carLoaderID);
 			}
-			yield return new WaitForSeconds(0.25f);
 		}
 
+		processRoutineRunning = false;
+	}
+
+	private static IEnumerator ApplyWash(int carLoaderID, bool interior)
+	{
 		yield return new WaitForEndOfFrame();
-		yield return new WaitForEndOfFrame();
 
-		// Security Rule: Validate GameData.Instance is initialized
-		if (GameData.Instance == null)
-		{
-			MelonLogger.Error("[CarWashLogic->WashCar] GameData.Instance is null. Cannot wash car.");
+		if (GameData.Instance == null || GameData.Instance.carLoaders == null)
 			yield break;
-		}
 
-		// Security Rule: Validate carLoaders array is initialized
-		if (GameData.Instance.carLoaders == null)
-		{
-			MelonLogger.Error("[CarWashLogic->WashCar] carLoaders array is null. Cannot wash car.");
-			yield break;
-		}
-
-		// Business Rule: Validate carLoaderID is within array bounds
 		if (carLoaderID < 0 || carLoaderID >= GameData.Instance.carLoaders.Length)
-		{
-			MelonLogger.Error($"[CarWashLogic->WashCar] Invalid carLoaderID: {carLoaderID}. Array length: {GameData.Instance.carLoaders.Length}");
 			yield break;
-		}
 
-		// Security Rule: Validate carLoader at index is not null
 		if (GameData.Instance.carLoaders[carLoaderID] == null)
-		{
-			MelonLogger.Warning($"[CarWashLogic->WashCar] CarLoader at index {carLoaderID} is null. Car may not be loaded.");
 			yield break;
-		}
 
-		// Business Rule: Check if car is already loaded (if loaded, skip to avoid duplicate operations)
-		// Note: Original logic was inverted - should check if NOT loaded, not if loaded
 		if (!ClientData.Instance.loadedCars.ContainsKey(carLoaderID))
 		{
-			MelonLogger.Warning($"[CarWashLogic->WashCar] Car at carLoaderID {carLoaderID} is not in loadedCars dictionary. Skipping wash.");
+			MelonLogger.Warning($"[CarWashLogic->ApplyWash] Car at carLoaderID {carLoaderID} is not in loadedCars. Skipping wash.");
+			yield break;
+		}
+
+		if (ClientData.Instance.loadedCars[carLoaderID].needResync)
+		{
+			MelonLogger.Warning($"[CarWashLogic->ApplyWash] Car at carLoaderID {carLoaderID} is still resyncing. Skipping wash.");
 			yield break;
 		}
 
@@ -179,7 +190,7 @@ public static class CarWashLogic
 			}
 
 			GameData.Instance.carLoaders[carLoaderID].TweenExteriorDustWash(0f, 1f, 3f);
-			MelonLogger.Msg($"[CarWashLogic->WashCar] Exterior wash applied to carLoaderID: {carLoaderID} with 3s duration.");
+			MelonLogger.Msg($"[CarWashLogic->ApplyWash] Exterior wash applied to carLoaderID: {carLoaderID}.");
 		}
 		else
 		{
@@ -195,7 +206,7 @@ public static class CarWashLogic
 			}
 
 			GameData.Instance.carLoaders[carLoaderID].TweenInteriorConditionAndDust(1f, 0f, 3f);
-			MelonLogger.Msg($"[CarWashLogic->WashCar] Interior wash applied to carLoaderID: {carLoaderID}");
+			MelonLogger.Msg($"[CarWashLogic->ApplyWash] Interior wash applied to carLoaderID: {carLoaderID}.");
 		}
 
 		listen = true;

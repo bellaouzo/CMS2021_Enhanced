@@ -42,20 +42,33 @@ public static class GarageResync
 			yield return new WaitForSeconds(0.25f);
 		while (!GameData.isReady)
 			yield return new WaitForSeconds(0.5f);
-		
-		MelonCoroutines.Start(ResyncCars());
+
+		yield return ResyncCars();
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncTools();
-		/*yield return new WaitForEndOfFrame();
-		ClientSend.ResyncPark();*/
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncUpgrade();
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncGarageLook();
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncDoors();
-		yield return new WaitForEndOfFrame();
-		ClientSend.ResyncWheelBalancer();
+
+		float waited = 0f;
+		const float timeout = 5f;
+		while (GameData.Instance?.wheelBalancer == null && waited < timeout)
+		{
+			waited += 0.25f;
+			yield return new WaitForSeconds(0.25f);
+		}
+
+		if (GameData.Instance?.wheelBalancer != null)
+		{
+			yield return new WaitForEndOfFrame();
+			ClientSend.ResyncWheelBalancer();
+		}
+		else
+			MelonLogger.Warning("[GarageResync] wheelBalancer not ready. Skipping wheel balancer resync.");
+
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncSkills();
 		yield return new WaitForEndOfFrame();

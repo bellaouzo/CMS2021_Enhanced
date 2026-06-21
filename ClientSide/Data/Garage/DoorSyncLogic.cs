@@ -20,14 +20,25 @@ public static class DoorSyncLogic
 	public static bool listen = true;
 
 	private static readonly Dictionary<string, GarageTeleport> teleportCache = new();
+	private static readonly Dictionary<string, ModDoorState> pendingDoors = new();
+	private static bool processRoutineRunning;
 
 	public static void Reset()
 	{
 		listen = true;
 		teleportCache.Clear();
+		pendingDoors.Clear();
+		processRoutineRunning = false;
 	}
 
 	public static string CarDoorId(int carLoaderID) => $"car_{carLoaderID}";
+
+	public static void QueueDoorState(ModDoorState state)
+	{
+		pendingDoors[state.doorId] = state;
+		if (!processRoutineRunning)
+			MelonCoroutines.Start(ProcessDoorQueue());
+	}
 
 	[HarmonyPatch(typeof(GarageTeleport), nameof(GarageTeleport.Use))]
 	[HarmonyPostfix]
@@ -90,14 +101,45 @@ public static class DoorSyncLogic
 		ClientSend.DoorStatePacket(CarDoorId(carLoaderID), true, carLoaderID);
 	}
 
-	public static IEnumerator ApplyDoorState(ModDoorState state)
+	private static IEnumerator ProcessDoorQueue()
 	{
-		while (!ClientData.GameReady)
-			yield return new WaitForSeconds(0.25f);
-		while (SceneManager.CurrentScene() != GameScene.garage)
-			yield return new WaitForSeconds(0.25f);
-		yield return new WaitForEndOfFrame();
+		processRoutineRunning = true;
 
+		while (pendingDoors.Count > 0)
+		{
+			yield return LoadWait.WaitForClientGameReady();
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				break;
+
+			yield return LoadWait.WaitForScene(GameScene.garage);
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				break;
+
+			yield return LoadWait.WaitForGameDataReady();
+			if (LoadWait.LastResult != LoadWaitResult.Success)
+				break;
+
+			yield return new WaitForEndOfFrame();
+
+			if (pendingDoors.Count == 0)
+				break;
+
+			var keys = new List<string>(pendingDoors.Keys);
+			foreach (var doorId in keys)
+			{
+				if (!pendingDoors.TryGetValue(doorId, out var state))
+					continue;
+
+				yield return ApplyDoorStateInternal(state);
+				pendingDoors.Remove(doorId);
+			}
+		}
+
+		processRoutineRunning = false;
+	}
+
+	private static IEnumerator ApplyDoorStateInternal(ModDoorState state)
+	{
 		listen = false;
 
 		if (state.doorId == PaintshopCloseAllId)
@@ -155,9 +197,9 @@ public static class DoorSyncLogic
 		if (parking != null)
 		{
 			if (state.isOpen)
-				parking.OpenDoor(false, true);
+				parking.OpenDoor(false, false);
 			else
-				parking.CloseDoor(true);
+				parking.CloseDoor(false);
 			listen = true;
 			yield break;
 		}
@@ -167,7 +209,7 @@ public static class DoorSyncLogic
 		{
 			if (teleport.isOpen != state.isOpen)
 			{
-				var routine = teleport.Switch(true);
+				var routine = teleport.Switch(false);
 				if (routine != null)
 				{
 					while (routine.MoveNext())

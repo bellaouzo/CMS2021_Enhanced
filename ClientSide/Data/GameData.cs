@@ -6,10 +6,9 @@ using CMS21Together.ClientSide.Data.Garage;
 using CMS21Together.ClientSide.Data.Handle;
 using CMS21Together.ServerSide;
 using CMS21Together.Shared;
-using HarmonyLib;
-using Il2CppSystem.Collections.Generic;
 using MelonLoader;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CMS21Together.ClientSide.Data;
 
@@ -17,6 +16,7 @@ public class GameData
 {
 	public static GameData Instance;
 	public static bool isReady;
+	private static bool isInitializing;
 	public CarLoader[] carLoaders;
 	public Inventory localInventory;
 
@@ -32,46 +32,172 @@ public class GameData
 	public WelderLogic welderLogic;
 	public PaintshopManager paintshopManager;
 
-	public GameData()
+	private GameData() { }
+
+	public static void ResetState()
 	{
-		localPlayer = Object.FindObjectOfType<FPSInputController>().gameObject;
-		localInventory = GameScript.Get().GetComponent<Inventory>();
-		upgradeTools = Object.FindObjectOfType<GarageLevelManager>().garageAndToolsTab;
-		toolsMoveManager = Object.FindObjectOfType<ToolsMoveManager>();
-		orderGenerator = Object.FindObjectOfType<OrderGenerator>();
-		engineStandLogic = Object.FindObjectOfType<EngineStandLogic>();
-		springClampLogic = Object.FindObjectOfType<SpringClampLogic>();
-		tireChanger = Object.FindObjectOfType<TireChangerLogic>();
-		wheelBalancer = Object.FindObjectOfType<WheelBalancerLogic>();
-		welderLogic = Object.FindObjectOfType<WelderLogic>();
-		paintshopManager = Object.FindObjectOfType<PaintshopManager>();
-		carLoaders = new[]
+		isReady = false;
+		isInitializing = false;
+		Instance = null;
+	}
+
+	public static IEnumerator Initialize()
+	{
+		if (Instance != null && Instance.engineStandLogic2 != null)
 		{
-			GameScript.Get().carOnScene[0],
-			GameScript.Get().carOnScene[3],
-			GameScript.Get().carOnScene[4],
-			GameScript.Get().carOnScene[1],
-			GameScript.Get().carOnScene[2]
-		};
-		LoadEngineStand();
+			yield return Refresh();
+			yield break;
+		}
+
+		while (isInitializing)
+			yield return new WaitForSeconds(0.1f);
+
+		isInitializing = true;
+		isReady = false;
+		Instance = new GameData();
+
+		yield return LoadWait.WaitForNotificationReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+		{
+			isInitializing = false;
+			yield break;
+		}
+
+		yield return PopulateReferences();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+		{
+			isInitializing = false;
+			yield break;
+		}
+
+		Instance.EnsureEngineStand2();
 		isReady = true;
+		isInitializing = false;
+
 		if (!Server.Instance.isRunning)
 			MelonCoroutines.Start(GarageResync.ResyncGarage());
+
 		MelonLogger.Msg("[GameData->Initialize] GameData ready.");
 	}
-	
+
+	public static IEnumerator Refresh()
+	{
+		isReady = false;
+
+		yield return LoadWait.WaitForNotificationReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		if (Instance == null)
+			Instance = new GameData();
+
+		yield return PopulateReferences();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		isReady = true;
+		MelonLogger.Msg("[GameData->Refresh] GameData references refreshed.");
+	}
+
+	private static IEnumerator PopulateReferences()
+	{
+		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<FPSInputController>() != null, 30f, "FPSInputController");
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		yield return LoadWait.WaitForPredicate(() => GameScript.Get() != null, 30f, "GameScript");
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<EngineStandLogic>() != null, 30f, "EngineStandLogic");
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<WheelBalancerLogic>() != null, 30f, "WheelBalancerLogic");
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
+		var fps = Object.FindObjectOfType<FPSInputController>();
+		Instance.localPlayer = fps.gameObject;
+		Instance.localInventory = GameScript.Get().GetComponent<Inventory>();
+
+		var garageLevelManager = Object.FindObjectOfType<GarageLevelManager>();
+		Instance.upgradeTools = garageLevelManager?.garageAndToolsTab;
+
+		Instance.toolsMoveManager = Object.FindObjectOfType<ToolsMoveManager>();
+		Instance.orderGenerator = Object.FindObjectOfType<OrderGenerator>();
+		Instance.springClampLogic = Object.FindObjectOfType<SpringClampLogic>();
+		Instance.tireChanger = Object.FindObjectOfType<TireChangerLogic>();
+		Instance.wheelBalancer = Object.FindObjectOfType<WheelBalancerLogic>();
+		Instance.welderLogic = Object.FindObjectOfType<WelderLogic>();
+		Instance.paintshopManager = Object.FindObjectOfType<PaintshopManager>();
+
+		Instance.BindEngineStandReferences();
+
+		if (Instance.welderLogic == null)
+			MelonLogger.Warning("[GameData->PopulateReferences] WelderLogic not found.");
+		if (Instance.paintshopManager == null)
+			MelonLogger.Warning("[GameData->PopulateReferences] PaintshopManager not found.");
+
+		var gameScript = GameScript.Get();
+		Instance.carLoaders = new[]
+		{
+			gameScript.carOnScene[0],
+			gameScript.carOnScene[3],
+			gameScript.carOnScene[4],
+			gameScript.carOnScene[1],
+			gameScript.carOnScene[2]
+		};
+	}
+
+	private void BindEngineStandReferences()
+	{
+		engineStandLogic = null;
+		engineStandLogic2 = null;
+
+		foreach (var stand in Object.FindObjectsOfType<EngineStandLogic>())
+		{
+			if (stand.gameObject.name == "Engine_stand_2")
+				engineStandLogic2 = stand;
+			else
+				engineStandLogic = stand;
+		}
+	}
+
+	private void EnsureEngineStand2()
+	{
+		if (engineStandLogic2 != null)
+			return;
+
+		if (engineStandLogic == null)
+		{
+			MelonLogger.Warning("[GameData->EnsureEngineStand2] Primary engine stand not found.");
+			return;
+		}
+
+		LoadEngineStand();
+	}
+
 	public void LoadEngineStand()
 	{
+		var existing = GameObject.Find("Engine_stand_2");
+		if (existing != null)
+		{
+			engineStandLogic2 = existing.GetComponent<EngineStandLogic>();
+			if (engineStandLogic2 != null)
+				return;
+		}
+
 		engineStandLogic2 = Object.Instantiate(engineStandLogic.gameObject,
 			new Vector3(-13.7864f, 0, -3.23f), Quaternion.identity).GetComponent<EngineStandLogic>();
 		engineStandLogic2.gameObject.name = "Engine_stand_2";
 		engineStandLogic2.EngineStand = engineStandLogic2.transform.GetChild(1).transform.GetChild(3).transform;
-		
+
 		var bundle = AssetBundle.LoadFromStream(DataHelper.DeepCopy(DataHelper.LoadContent("CMS21Together.Assets.engineStand.assets")));
 		if (bundle == null)
 		{
 			MelonLogger.Warning("Impossible de charger l'AssetBundle !");
-			return ;
+			return;
 		}
 
 		GameObject newObj = null;
@@ -90,18 +216,15 @@ public class GameData
 			mf.sharedMesh = mesh;
 			mr.material = engineStandLogic.transform.GetChild(2).GetComponent<MeshRenderer>().material;
 		}
-		
+
 		if (newObj != null) newObj.transform.SetParent(engineStandLogic2.transform, true);
-		
-		
-		
+
 		bundle.Unload(false);
 		MelonLogger.Msg("Loaded stand successfully !");
 	}
-	
+
 	public static IEnumerator GameReady()
 	{
-		while (!isReady)
-			yield return new WaitForSeconds(0.2f);
+		yield return LoadWait.WaitForGameDataReady();
 	}
 }

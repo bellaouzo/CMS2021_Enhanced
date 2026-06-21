@@ -60,5 +60,6 @@ public enum PacketTypes
 	wheelAlignment,
 	headlampAlignment,
 	garageCustomization,
-	doorState
+	doorState,
+	salonCar
 }

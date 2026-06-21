@@ -577,6 +577,13 @@ public static class ServerHandle
 		ServerSend.DoorStatePacket(fromClient, state);
 	}
 
+	public static void SalonCarPacket(int fromClient, Packet packet)
+	{
+		var data = packet.Read<ModSalonCar>();
+		ServerData.Instance.salonCar = data;
+		ServerSend.SalonCarPacket(fromClient, data);
+	}
+
 	public static void GarageCustomizationPacket(int fromClient, Packet packet)
 	{
 		int sectionIndex  = packet.ReadInt();
@@ -655,6 +662,9 @@ public static class ServerHandle
 				break;
 			case PacketTypes.doorState:
 				ServerResyncs.ResyncDoors(fromClient);
+				break;
+			case PacketTypes.salonCar:
+				ServerResyncs.ResyncSalon(fromClient);
 				break;
 			case PacketTypes.wheelBalance:
 				ServerResyncs.ResyncWheelBalancer(fromClient);

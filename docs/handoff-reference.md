@@ -65,10 +65,12 @@ public enum PacketTypes
     carWash, carPaint, useWelder, repairPart, parkAdd, parkRemove,
     playerInCar, carEngineSound,
     dynoRun, wheelAlignment, headlampAlignment, garageCustomization,
-    doorState
+    doorState, salonCar
 }
 ```
-**Note:** `position` packet now includes a trailing `bool isCrouching` after `Vector3Serializable`.
+**Note:** `position` packet includes a trailing `bool isCrouching` after `Vector3Serializable`.
+
+**Player sync scenes:** `garage`, `auto_salon`, `barn`, `junkyard` — use `SceneManager.IsPlayerSyncScene()`.
 
 ---
 
@@ -222,7 +224,7 @@ Without this guard, 41 spurious packets fire every garage load.
 ### Feature 13 — Crouch sync
 **New file:** `ClientSide/Data/Player/CrouchSync.cs`  
 **Hook:** `FPSCamera.UpdateCrouchingState` Postfix  
-**Wire format:** `position` packet appends `bool isCrouching`; stored on `UserData.isCrouching`; remote avatar gets Y offset + animator bool if parameter exists (`Crouch`, `IsCrouching`, `crouch`)
+**Wire format:** `position` packet appends `bool isCrouching`; remote avatar uses Y offset + Y scale lerp (see Bug fixes v2)
 
 ### Feature 14 — Car wash animation + server state fix
 **File:** `ClientSide/Data/Garage/Tools/CarWashLogic.cs`, `ServerSide/Data/ServerData.cs`  
@@ -243,6 +245,82 @@ Without this guard, 41 spurious packets fire every garage load.
 - `CloseServer` waits 1.5s after disconnect packets before closing sockets; sets `CloseServerComplete`
 - `OnApplicationQuit` blocks up to 3s for close to finish
 - `Client.LastDisconnectMessage` shows server shutdown text instead of generic connect failure
+
+---
+
+## Bug fixes v2 (2026-06-20)
+
+### Fix 1 — Crouch visual (remote avatar)
+**File:** `ClientSide/Data/Player/Movement.cs`  
+Remote prefab has no crouch animator params. Removed `SetBool` calls; remote crouch uses **Y scale lerp** (`baseScaleY * 0.72`) plus existing position Y offset. `UserData.baseScaleY` captured at spawn.
+
+### Fix 2 — Steam disconnect + ghost cleanup
+**Files:** `Client.cs`, `ClientSteam.cs`, `ClientData.cs`, `ClientHandle.cs`, `SceneManager.cs`, `Server.cs`  
+- `Client.Disconnect()` null-guards `tcp`/`udp`, closes `steam`, calls `ClientData.DestroyAllRemotePlayers()`
+- `ClientSteam` `ClosedByPeer`/`Dead`/`None` triggers `Disconnect(true)` if still connected
+- Menu transition uses `DisconnectAndCloseServer()` coroutine — waits for `CloseServerComplete` before host disconnect
+- `CloseServer` disconnects remote `ServerConnection`s after 1.5s wait
+
+### Fix 3 — Door animated apply
+**File:** `DoorSyncLogic.cs` — remote apply uses `Switch(false)`, `OpenDoor(false, false)`, `CloseDoor(false)` (was instant).
+
+### Fix 4 — Auto salon player + showroom car sync
+**Files:** `MainMod.cs`, `ClientData.cs`, `SalonSyncLogic.cs`, `ModSalonCar.cs`  
+- `UpdateClient()` runs in all player-sync scenes (not garage-only)
+- New packet `salonCar` — payload `ModSalonCar { carId, version }`; hook `Configurator.LoadCar`
+- **Limitation:** dealership inventory list is still per-client; browsing sync only applies when a player selects a car (`LoadCar`).
+
+### Fix 5 — Resync race hardening
+**Files:** `WheelBalancer.cs`, `GarageResync.cs`, `CarWashLogic.cs`  
+- `ApplyRemove` waits for `wheelBalancer` with timeout; skips if null
+- `ResyncGarage` yields through `ResyncCars()` before tool resyncs; waits for `wheelBalancer` before wheel balancer resync
+- `WashCar` skips cars with `needResync == true`
+
+---
+
+## Late loading hardening (2026-06-20)
+
+### LoadWait helper
+**New file:** `Shared/LoadWait.cs`  
+Central wait/timeouts for slow PCs. All methods poll every 0.25s, break on disconnect, log + timeout (never infinite hang). Check `LoadWait.LastResult` after yield.
+
+| Method | Default timeout |
+|--------|-------------------|
+| `WaitForClientGameReady()` | 60s |
+| `WaitForGameDataReady()` | 60s |
+| `WaitForNotificationReady()` | 60s |
+| `WaitForScene(GameScene)` | 30s |
+| `WaitForComponent<T>()` | 30s |
+| `WaitForCarLoaded(carLoaderID)` | 60s |
+| `WaitForCarReady(carLoaderID)` | 30s |
+
+`GameData.GameReady()` delegates to `WaitForGameDataReady()`.
+
+### Apply queues (packets no longer dropped during load)
+| Feature | Pattern |
+|---------|---------|
+| Doors | `DoorSyncLogic.pendingDoors` — latest state per `doorId`, `ProcessDoorQueue()` |
+| Salon car | `SalonSyncLogic.pendingSalonCar`, waits for `Configurator` |
+| Car wash | `CarWashLogic.pendingWashes` — dedupe by `carLoaderID`, waits for car loaded |
+
+`ClientHandle` routes `doorState`, `salonCar`, `carWash` through queues.
+
+### Async GameData init
+**File:** `GameData.cs` — `Initialize()` coroutine polls `NotificationCenter.IsGameReady` and required scene objects before setting `isReady`. Replaces immediate `FindObjectOfType` in ctor.
+
+**File:** `ClientData.cs` — removed fixed 2s wait; uses `LoadWait.WaitForNotificationReady()`. Spawns remote players for current player-sync scene on `GameReady`.
+
+### Car load pipeline
+**File:** `CarSpawnManager.LoadCarFromServer` — waits for `IsCarLoaded()` before `PartsReferencer`; on timeout removes partial car and calls `ResyncCar`.
+
+**File:** `PartsUpdater.cs` — `WaitForCarReadyOrResync()` with 30s timeout + `ResyncCar` fallback on all car part apply paths.
+
+### Salon resync on scene enter
+- `ClientSend.ResyncSalon()` → `resync` sub-type `salonCar`
+- `ServerResyncs.ResyncSalon()` sends `ServerData.salonCar` to requesting client
+- Triggered on `Auto_salon` scene enter in `SceneManager`
+
+**Out of scope:** queuing every packet type (inventory, jobs, engine stand) — those rely on existing server state + garage resync.
 
 ---
 
@@ -381,6 +459,36 @@ All decompiled game code is in `_decomp/` at the project root:
 | `ClientSide/Data/Garage/DoorSyncLogic.cs` | Door hooks + apply coroutine |
 | `ClientSide/Data/Player/CrouchSync.cs` | Crouch state hook |
 | `Shared/Data/Vanilla/ModDoorState.cs` | Door sync DTO |
+| `ClientSide/Data/Salon/SalonSyncLogic.cs` | Auto salon car browse sync |
+| `Shared/Data/Vanilla/ModSalonCar.cs` | Salon car DTO |
+
+### Modified files (bug fixes v2)
+| File | What changed |
+|------|-------------|
+| `Client.cs` / `ClientSteam.cs` | Null-safe Steam disconnect |
+| `ClientData.cs` | `DestroyAllRemotePlayers`, outdoor `UpdateClient` |
+| `SceneManager.cs` | `IsPlayerSyncScene`, `DisconnectAndCloseServer` |
+| `Movement.cs` | Scale-based crouch visual |
+| `DoorSyncLogic.cs` | Animated door apply |
+| `GarageResync.cs` / `WheelBalancer.cs` / `CarWashLogic.cs` | Resync race guards |
+| `MainMod.cs` | Player sync in outdoor scenes |
+| `PacketTypes.cs` | `salonCar` |
+| `CMS21-Together.csproj` | 2 new compile entries |
+
+### New files (late loading)
+| File | Purpose |
+|------|---------|
+| `Shared/LoadWait.cs` | Timeout/disconnect-aware wait helpers |
+
+### Modified files (late loading)
+| File | What changed |
+|------|-------------|
+| `DoorSyncLogic.cs` / `SalonSyncLogic.cs` / `CarWashLogic.cs` | Apply queues + LoadWait |
+| `GameData.cs` / `ClientData.cs` | Async init, notification wait |
+| `CarSpawnManager.cs` / `PartsUpdater.cs` | Car load wait + resync fallback |
+| `ClientHandle.cs` / `ClientSend.cs` | Queue routing, `ResyncSalon` |
+| `ServerResyncs.cs` / `ServerHandle.cs` / `ServerSend.cs` | Salon resync |
+| `SceneManager.cs` | Salon resync on enter, salon reset on leave |
 
 ### Modified files (sync fixes)
 | File | What changed |
@@ -415,6 +523,13 @@ All decompiled game code is in `_decomp/` at the project root:
 | Doors | Paint shop interior, parking, car doors match open/closed state |
 | Username | Each Steam account shows distinct name in lobby + name tag |
 | Crouch | Remote player appears crouched when sender crouches |
+| Server shutdown | Remote Steam clients return to menu; no frozen host avatar |
+| Door animation | Garage teleport / parking doors animate on remote (not snap) |
+| Auto salon | Both players visible; selecting a car syncs showroom model |
+| Salon → car wash | No hang after garage return; no wheel balancer NRE in log |
+| Door during load | Client eventually shows correct door state (queue or resync) |
+| Salon browse during load | Client showroom matches after Configurator appears |
+| Disconnect during wait | All LoadWait loops exit cleanly, no hang |
 | Car wash | Outdoor tunnel + interior detailing show tool animation + clean result on remote |
 | Wheel balancer | Mount → balance → remove; remote sees empty balancer |
 | Server close | Host quits → client gets shutdown message and returns to menu |

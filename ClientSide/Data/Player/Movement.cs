@@ -1,4 +1,5 @@
 ﻿using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using MelonLoader;
 using UnityEngine;
@@ -9,13 +10,15 @@ public static class Movement
 {
 	private static readonly float minDistance = 0.01f;
 	private static readonly float crouchHeightOffset = 0.35f;
+	private static readonly float crouchScaleY = 0.72f;
+	private static readonly float normalScaleY = 1f;
 	private static Vector3 lastPosition;
 	private static bool lastSentCrouch;
 
 	public static void UpdatePosition(int id, Vector3Serializable position, bool isCrouching = false)
 	{
 		if (!ClientData.Instance.connectedClients.ContainsKey(id)) return;
-		if (!GameData.isReady) return;
+		if (!CanSyncRemotePlayer()) return;
 
 		var player = ClientData.Instance.connectedClients[id];
 		player.isCrouching = isCrouching;
@@ -41,6 +44,10 @@ public static class Movement
 				targetPos.y -= crouchHeightOffset;
 
 			Vector3 curPos = player.userObject.transform.position;
+			float targetScaleY = isCrouching ? crouchScaleY : normalScaleY;
+			Vector3 scale = player.userObject.transform.localScale;
+			scale.y = Mathf.Lerp(scale.y, player.baseScaleY * targetScaleY, Time.deltaTime * 12f);
+			player.userObject.transform.localScale = scale;
 
 			if (player.lastPosition != null)
 			{
@@ -48,7 +55,7 @@ public static class Movement
 				var speed = (targetPos - player.lastPosition.toVector3()).magnitude / Time.deltaTime;
 				speed = Mathf.Clamp(speed, 0f, 20f);
 
-				UpdateAnimations(player.userAnimator, direction, speed, isCrouching);
+				UpdateAnimations(player.userAnimator, direction, speed);
 				player.lastUpdateTime = Time.time;
 				player.userObject.transform.position = Vector3.Lerp(curPos, targetPos, Time.deltaTime * 15f);
 			}
@@ -59,7 +66,19 @@ public static class Movement
 		}
 	}
 
-	private static void UpdateAnimations(Animator animator, Vector3 direction, float speed, bool isCrouching)
+	public static bool CanSyncRemotePlayer()
+	{
+		if (SceneManager.IsPlayerSyncScene())
+		{
+			if (SceneManager.CurrentScene() == GameScene.garage)
+				return GameData.isReady;
+			return GameData.Instance?.localPlayer != null;
+		}
+
+		return GameData.isReady;
+	}
+
+	private static void UpdateAnimations(Animator animator, Vector3 direction, float speed)
 	{
 		if (animator == null) return;
 
@@ -68,15 +87,6 @@ public static class Movement
 
 		animator.SetFloat("Vertical", Mathf.Lerp(animator.GetFloat("Vertical"), verticalSpeed, Time.deltaTime * 10f));
 		animator.SetFloat("Horizontal", Mathf.Lerp(animator.GetFloat("Horizontal"), horizontalSpeed, Time.deltaTime * 10f));
-
-		TrySetCrouchBool(animator, isCrouching);
-	}
-
-	private static void TrySetCrouchBool(Animator animator, bool isCrouching)
-	{
-		animator.SetBool("Crouch", isCrouching);
-		animator.SetBool("IsCrouching", isCrouching);
-		animator.SetBool("crouch", isCrouching);
 	}
 
 	public static void CheckForInactivity()

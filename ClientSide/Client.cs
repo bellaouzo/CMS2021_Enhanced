@@ -140,7 +140,8 @@ public class Client
 			{ (int)PacketTypes.wheelAlignment, ClientHandle.WheelAlignmentPacket },
 			{ (int)PacketTypes.headlampAlignment, ClientHandle.HeadlampAlignmentPacket },
 			{ (int)PacketTypes.garageCustomization, ClientHandle.GarageCustomizationPacket },
-			{ (int)PacketTypes.doorState, ClientHandle.DoorStatePacket }
+			{ (int)PacketTypes.doorState, ClientHandle.DoorStatePacket },
+			{ (int)PacketTypes.salonCar, ClientHandle.SalonCarPacket }
 		};
 	}
 
@@ -148,26 +149,41 @@ public class Client
 	{
 		if (!isConnected) return;
 
-
 		if (!fromServer)
 			ClientSend.DisconnectPacket();
+
 		Application.runInBackground = false;
 		isConnected = false;
 
+		ClientData.DestroyAllRemotePlayers();
 
-		tcp.Disconnect();
-		udp.Disconnect();
-		
+		tcp?.Disconnect();
+		udp?.Disconnect();
+
+		if (steam != null)
+		{
+			try { steam.Close(); }
+			catch (System.Exception ex)
+			{
+				MelonLogger.Warning($"[Client->Disconnect] Steam close: {ex.Message}");
+			}
+			steam = null;
+		}
+
 		if (SceneManager.GetActiveScene().name != "Menu")
 		{
 			var manager = NotificationCenter.m_instance;
-			manager.StartCoroutine(manager.SelectSceneToLoad("Menu", SceneType.Menu, true, true));
+			if (manager != null)
+				manager.StartCoroutine(manager.SelectSceneToLoad("Menu", SceneType.Menu, true, true));
+			else
+				OnDisconnectedInvoke();
 		}
 		else
 			OnDisconnectedInvoke();
 		
 		MelonLogger.Msg("[Client->Disconnect] Disconnected from server.");
-		ApiCalls.API_M2(ContentManager.Instance.ownedContents);
+		if (ContentManager.Instance != null)
+			ApiCalls.API_M2(ContentManager.Instance.ownedContents);
 	}
 
 	public void OnConnectedInvoke()

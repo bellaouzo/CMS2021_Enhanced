@@ -417,6 +417,18 @@ public static class ServerSend
 		}
 	}
 
+	public static void SalonCarPacket(int fromClient, ModSalonCar data, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.salonCar))
+		{
+			packet.Write(data);
+			if (resync)
+				SendData(fromClient, packet);
+			else
+				SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void SendOilBin(int fromClient, int carLoaderID)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.oilBinUse))

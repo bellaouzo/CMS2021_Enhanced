@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using CMS21Together.ClientSide;
 using CMS21Together.ClientSide.Data;
@@ -7,6 +8,7 @@ using CMS21Together.ServerSide;
 using CMS21Together.Shared.Data;
 using HarmonyLib;
 using MelonLoader;
+using UnityEngine;
 
 namespace CMS21Together.Shared;
 
@@ -32,19 +34,12 @@ public static class SceneManager
 
 		if (newSceneName == "Menu")
 		{
-			// Business Rule: Disconnect and cleanup when returning to menu
 			MelonLogger.Msg("[SceneManager->SelectSceneToLoadHook] Going to menu! Disconnecting...");
-			
-			// Security Rule: Stop outdoor operations before disconnecting
-			StopOutdoorOperations();
-			
-			if (Server.Instance != null && Server.Instance.isRunning)
-				MelonCoroutines.Start(Server.Instance.CloseServer());
-			
-			if (Client.Instance.isConnected)
-				Client.Instance.Disconnect();
-
-			ClientData.GameReady = false;
+			MelonCoroutines.Start(DisconnectAndCloseServer());
+		}
+		else if (newSceneName == "Auto_salon")
+		{
+			ClientSide.Data.Handle.ClientSend.ResyncSalon();
 		}
 		else if (newSceneName == "garage" || newSceneName == "Christmas" || newSceneName == "Easter" || newSceneName == "Halloween")
 		{
@@ -100,6 +95,7 @@ public static class SceneManager
 				CMS21Together.ClientSide.Data.Garage.Tools.CarPaintLogic.Reset();
 				CMS21Together.ClientSide.Data.Garage.GarageCustomizationLogic.Reset();
 				CMS21Together.ClientSide.Data.Garage.DoorSyncLogic.Reset();
+				CMS21Together.ClientSide.Data.Salon.SalonSyncLogic.Reset();
 				
 				MelonLogger.Msg("[SceneManager->StopOutdoorOperations] Stopped outdoor operations (car wash, paint).");
 			}
@@ -207,5 +203,38 @@ public static class SceneManager
 			return user.scene == GameScene.barn;
 
 		return ClientData.UserData.scene == GameScene.barn;
+	}
+
+	public static bool IsPlayerSyncScene(GameScene scene)
+	{
+		return scene == GameScene.garage
+		       || scene == GameScene.auto_salon
+		       || scene == GameScene.barn
+		       || scene == GameScene.junkyard;
+	}
+
+	public static bool IsPlayerSyncScene()
+	{
+		return IsPlayerSyncScene(CurrentScene());
+	}
+
+	private static IEnumerator DisconnectAndCloseServer()
+	{
+		StopOutdoorOperations();
+
+		if (Server.Instance != null && Server.Instance.isRunning)
+		{
+			MelonCoroutines.Start(Server.Instance.CloseServer());
+			float deadline = Time.realtimeSinceStartup + 3f;
+			while (!Server.CloseServerComplete && Time.realtimeSinceStartup < deadline)
+				yield return null;
+		}
+
+		ClientData.DestroyAllRemotePlayers();
+
+		if (Client.Instance.isConnected)
+			Client.Instance.Disconnect();
+
+		ClientData.GameReady = false;
 	}
 }

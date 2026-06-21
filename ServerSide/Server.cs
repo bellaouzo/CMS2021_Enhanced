@@ -106,7 +106,13 @@ public class Server
 		SavesManager.SaveModSave(SavesManager.currentSaveIndex);
 		yield return new WaitForSeconds(1.5f);
 		MelonLogger.Msg("[Server->CloseServer] Successfully Saved players infos!");
-		
+
+		foreach (var id in clients.Keys)
+		{
+			if (id == 1 || !clients[id].isConnected) continue;
+			clients[id].Disconnect();
+		}
+
 		isRunning = false;
 		Application.runInBackground = false;
 		if (udp != null)
@@ -243,7 +249,8 @@ public class Server
 			{ (int)PacketTypes.wheelAlignment, ServerHandle.WheelAlignmentPacket },
 			{ (int)PacketTypes.headlampAlignment, ServerHandle.HeadlampAlignmentPacket },
 			{ (int)PacketTypes.garageCustomization, ServerHandle.GarageCustomizationPacket },
-			{ (int)PacketTypes.doorState, ServerHandle.DoorStatePacket }
+			{ (int)PacketTypes.doorState, ServerHandle.DoorStatePacket },
+			{ (int)PacketTypes.salonCar, ServerHandle.SalonCarPacket }
 		};
 	}
 }

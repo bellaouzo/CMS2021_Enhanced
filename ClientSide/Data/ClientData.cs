@@ -1,10 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using CMS21Together.ClientSide.Data.Garage;
 using CMS21Together.ClientSide.Data.Garage.Campaign;
 using CMS21Together.ClientSide.Data.Garage.Car;
 using CMS21Together.ClientSide.Data.Garage.Tools;
 using CMS21Together.ClientSide.Data.Handle;
 using CMS21Together.ClientSide.Data.Player;
+using CMS21Together.ServerSide;
 using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using CMS21Together.Shared.Data.Vanilla;
@@ -29,11 +31,26 @@ public class ClientData
 	public ModEngineStand engineStand2;
 	public GameObject playerPrefab;
 	public int scrap, money ,exp, level;
+	public static void DestroyAllRemotePlayers()
+	{
+		if (Instance == null) return;
+
+		foreach (var client in Instance.connectedClients.Values)
+		{
+			if (client == null || client.playerID == UserData.playerID) continue;
+
+			client.isInCar = false;
+			client.isCrouching = false;
+			client.carLoaderID = -1;
+			client.DestroyPlayer();
+		}
+	}
+
 	public ClientData()
 	{
 		GameReady = false;
 		initRoutine = false;
-		GameData.Instance = null;
+		GameData.ResetState();
 		
 		Player.Inventory.Reset();
 		CarSpawnHooks.Reset();
@@ -42,6 +59,7 @@ public class ClientData
 		GarageUpgradeHooks.Reset();
 		Garage.GarageCustomizationLogic.Reset();
 		Garage.DoorSyncLogic.Reset();
+		Salon.SalonSyncLogic.Reset();
 		Player.CrouchSync.Reset();
 		Garage.Tools.ToolsMoveManager.Reset();
 		Garage.Tools.CarWashLogic.Reset();
@@ -56,47 +74,73 @@ public class ClientData
 
 	public void UpdateClient()
 	{
-		if (GameData.isReady == false && !initRoutine)
-			MelonCoroutines.Start(InitializeGameData());
-
-		if (GameReady)
+		if (SceneManager.CurrentScene() == GameScene.garage)
 		{
-			Movement.SendPosition();
-			Movement.CheckForInactivity();
-			Rotation.SendRotation();
-			
-			// Business Logic: Periodically check if local player entered/exited a car
-			if (Time.time - lastCarCheckTime >= carCheckInterval)
-			{
-				lastCarCheckTime = Time.time;
-				CarEnterExit.CheckCarState();
-			}
+			if (GameData.isReady == false && !initRoutine)
+				MelonCoroutines.Start(InitializeGameData());
+		}
+
+		if (!SceneManager.IsPlayerSyncScene())
+			return;
+
+		bool canSync = SceneManager.CurrentScene() == GameScene.garage
+			? GameReady
+			: GameData.Instance?.localPlayer != null;
+
+		if (!canSync)
+			return;
+
+		Movement.SendPosition();
+		Movement.CheckForInactivity();
+		Rotation.SendRotation();
+
+		if (SceneManager.CurrentScene() == GameScene.garage && Time.time - lastCarCheckTime >= carCheckInterval)
+		{
+			lastCarCheckTime = Time.time;
+			CarEnterExit.CheckCarState();
 		}
 	}
 
 	private IEnumerator InitializeGameData()
 	{
 		initRoutine = true;
+		bool wasGameReady = GameReady;
+
 		while (SceneManager.CurrentScene() != GameScene.garage)
 			yield return new WaitForEndOfFrame();
-		
-		yield return new WaitForEndOfFrame();
-		yield return new WaitForEndOfFrame();
-		GameData.Instance = new GameData();
-		MelonCoroutines.Start(Stats.SendInitialStats());
-		MelonCoroutines.Start(GarageUpgradeHooks.SendInitial());
-		MelonCoroutines.Start(Garage.GarageCustomizationLogic.SendInitial());
 
-		// Business Rule: Ensure player prefab is loaded before spawning players
+		yield return new WaitForEndOfFrame();
+		yield return new WaitForEndOfFrame();
+
+		yield return LoadWait.WaitForNotificationReady();
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+		{
+			initRoutine = false;
+			yield break;
+		}
+
+		yield return GameData.Initialize();
+		if (!GameData.isReady)
+		{
+			MelonLogger.Error("[ClientData->InitializeGameData] GameData initialization failed.");
+			initRoutine = false;
+			yield break;
+		}
+
+		if (!ClientData.GameReady)
+		{
+			MelonCoroutines.Start(Stats.SendInitialStats());
+			MelonCoroutines.Start(GarageUpgradeHooks.SendInitial());
+			MelonCoroutines.Start(Garage.GarageCustomizationLogic.SendInitial());
+		}
+
 		if (playerPrefab == null)
 		{
 			LoadPlayerPrefab();
-			// Security Rule: Wait multiple frames to ensure prefab is fully loaded and initialized
 			yield return new WaitForEndOfFrame();
 			yield return new WaitForEndOfFrame();
 			yield return new WaitForEndOfFrame();
-			
-			// Business Rule: Verify prefab was loaded successfully
+
 			if (playerPrefab == null)
 			{
 				MelonLogger.Error("[ClientData->InitializeGameData] Failed to load playerPrefab after multiple attempts. Retrying...");
@@ -106,21 +150,19 @@ public class ClientData
 			}
 		}
 
-		yield return new WaitForSeconds(2);
 		yield return new WaitForEndOfFrame();
 		gamemode = SavesManager.GetGamemodeFromDifficulty(SavesManager.currentSave.Difficulty);
-		
-		// Business Rule: Only set GameReady to true if playerPrefab is loaded
+
 		if (playerPrefab != null)
 		{
 			GameReady = true;
 			initRoutine = false;
-			if (SavesManager.currentSaveIndex != MainMod.MAX_SAVE_COUNT)
+			if (!wasGameReady && SavesManager.currentSaveIndex != MainMod.MAX_SAVE_COUNT)
 				SavesManager.SaveModSave(SavesManager.currentSaveIndex);
-			foreach (var client in connectedClients)
+			foreach (var client in connectedClients.Values)
 			{
-				if (client.Value.scene == GameScene.garage)
-					client.Value.SpawnPlayer();
+				if (client.scene == UserData.scene)
+					client.SpawnPlayer();
 			}
 			MelonLogger.Msg("Game is ready.");
 		}
