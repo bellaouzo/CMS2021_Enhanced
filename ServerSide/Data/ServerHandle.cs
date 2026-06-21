@@ -546,10 +546,25 @@ public static class ServerHandle
 		ServerSend.WheelAlignmentPacket(fromClient, carLoaderID, data);
 	}
 	
+	public static void HeadlampAlignmentPacket(int fromClient, Packet packet)
+	{
+		int carLoaderID = packet.ReadInt();
+		var left  = packet.Read<ModHeadLampAlignmentData>();
+		var right = packet.Read<ModHeadLampAlignmentData>();
+
+		if (ServerData.Instance.CarSpawnDatas.ContainsKey(carLoaderID))
+		{
+			ServerData.Instance.CarSpawnDatas[carLoaderID].HeadLampLeftAlignmentData  = left;
+			ServerData.Instance.CarSpawnDatas[carLoaderID].HeadlampRightAlignmentData = right;
+		}
+
+		ServerSend.HeadlampAlignmentPacket(fromClient, carLoaderID, left, right);
+	}
+
 	public static void WelderPacket(int fromClient, Packet packet)
 	{
 		int loaderID = packet.ReadInt();
-		
+
 		ServerData.Instance.SetWelder(loaderID);
 		ServerSend.WelderPacket(fromClient, loaderID);
 	}

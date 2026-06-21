@@ -504,6 +504,17 @@ public static class ServerSend
 		}
 	}
 
+	public static void HeadlampAlignmentPacket(int fromClient, int carLoaderID, ModHeadLampAlignmentData left, ModHeadLampAlignmentData right)
+	{
+		using (var packet = new Packet((int)PacketTypes.headlampAlignment))
+		{
+			packet.Write(carLoaderID);
+			packet.Write(left);
+			packet.Write(right);
+			SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void CarPaintPacket(int fromClient, ModColor color)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.carPaint))

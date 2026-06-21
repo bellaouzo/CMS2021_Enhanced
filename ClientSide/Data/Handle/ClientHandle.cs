@@ -259,6 +259,14 @@ public static class ClientHandle
 		var data = _packet.Read<ModWheelsAlignmentData>();
 		MelonCoroutines.Start(Garage.Tools.WheelAlignmentLogic.ApplyWheelAlignment(carLoaderID, data));
 	}
+
+	public static void HeadlampAlignmentPacket(Packet _packet)
+	{
+		int carLoaderID = _packet.ReadInt();
+		var left  = _packet.Read<ModHeadLampAlignmentData>();
+		var right = _packet.Read<ModHeadLampAlignmentData>();
+		MelonCoroutines.Start(Garage.Tools.HeadlampAlignmentLogic.ApplyHeadlampAlignment(carLoaderID, left, right));
+	}
 	
 	public static void CarPaintPacket(Packet _packet)
 	{

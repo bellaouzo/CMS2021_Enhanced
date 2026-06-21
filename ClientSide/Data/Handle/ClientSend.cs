@@ -460,6 +460,17 @@ public class ClientSend
 		}
 	}
 
+	public static void HeadlampAlignmentPacket(int carLoaderID, ModHeadLampAlignmentData left, ModHeadLampAlignmentData right)
+	{
+		using (var packet = new Packet((int)PacketTypes.headlampAlignment))
+		{
+			packet.Write(carLoaderID);
+			packet.Write(left);
+			packet.Write(right);
+			SendData(packet);
+		}
+	}
+
 	public static void CarPaint(ModColor modColor)
 	{
 		using (var packet = new Packet((int)PacketTypes.carPaint))
