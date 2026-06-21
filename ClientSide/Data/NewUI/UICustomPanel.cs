@@ -378,7 +378,10 @@ public static class UICustomPanel
 		nameTxtRect.sizeDelta = new Vector2(230, 45);
 		nameTxtRect.anchoredPosition = new Vector2(10, -50);
 		
-		var nameField = UIElements.CreateInput(UICore.TMP_Window.transform, ClientData.UserData.username);
+		var defaultName = ClientData.UserData.selectedNetworkType == NetworkType.Steam && ApiCalls.useSteam
+			? Steamworks.SteamClient.Name
+			: ClientData.UserData.username;
+		var nameField = UIElements.CreateInput(UICore.TMP_Window.transform, defaultName);
 		nameField.transform.parent.GetChild(1).gameObject.SetActive(false);
 		var nameFieldRect = nameField.transform.parent.GetComponent<RectTransform>();
 		nameFieldRect.anchorMin = new Vector2(0f, 1f);

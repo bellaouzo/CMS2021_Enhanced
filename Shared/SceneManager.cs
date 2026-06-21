@@ -98,6 +98,8 @@ public static class SceneManager
 				// Note: Using full namespace path for IL2CPP compatibility
 				CMS21Together.ClientSide.Data.Garage.Tools.CarWashLogic.Reset();
 				CMS21Together.ClientSide.Data.Garage.Tools.CarPaintLogic.Reset();
+				CMS21Together.ClientSide.Data.Garage.GarageCustomizationLogic.Reset();
+				CMS21Together.ClientSide.Data.Garage.DoorSyncLogic.Reset();
 				
 				MelonLogger.Msg("[SceneManager->StopOutdoorOperations] Stopped outdoor operations (car wash, paint).");
 			}

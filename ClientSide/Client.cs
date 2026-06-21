@@ -31,6 +31,8 @@ public class Client
 	public event Action OnConnected;
 	public event Action OnDisconnected;
 
+	public static string LastDisconnectMessage;
+
 	public void ConnectToServer(NetworkType type, string ip = "")
 	{
 		networkType = type;
@@ -137,7 +139,8 @@ public class Client
 			{ (int)PacketTypes.dynoRun, ClientHandle.DynoRunPacket },
 			{ (int)PacketTypes.wheelAlignment, ClientHandle.WheelAlignmentPacket },
 			{ (int)PacketTypes.headlampAlignment, ClientHandle.HeadlampAlignmentPacket },
-			{ (int)PacketTypes.garageCustomization, ClientHandle.GarageCustomizationPacket }
+			{ (int)PacketTypes.garageCustomization, ClientHandle.GarageCustomizationPacket },
+			{ (int)PacketTypes.doorState, ClientHandle.DoorStatePacket }
 		};
 	}
 

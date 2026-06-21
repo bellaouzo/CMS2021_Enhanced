@@ -40,6 +40,9 @@ public class ClientData
 		JobManager.Reset();
 		Stats.Reset();
 		GarageUpgradeHooks.Reset();
+		Garage.GarageCustomizationLogic.Reset();
+		Garage.DoorSyncLogic.Reset();
+		Player.CrouchSync.Reset();
 		Garage.Tools.ToolsMoveManager.Reset();
 		Garage.Tools.CarWashLogic.Reset();
 		CarPaintLogic.Reset();
@@ -82,6 +85,7 @@ public class ClientData
 		GameData.Instance = new GameData();
 		MelonCoroutines.Start(Stats.SendInitialStats());
 		MelonCoroutines.Start(GarageUpgradeHooks.SendInitial());
+		MelonCoroutines.Start(Garage.GarageCustomizationLogic.SendInitial());
 
 		// Business Rule: Ensure player prefab is loaded before spawning players
 		if (playerPrefab == null)

@@ -59,5 +59,6 @@ public enum PacketTypes
 	dynoRun,
 	wheelAlignment,
 	headlampAlignment,
-	garageCustomization
+	garageCustomization,
+	doorState
 }

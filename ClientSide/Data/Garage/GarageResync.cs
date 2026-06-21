@@ -53,6 +53,10 @@ public static class GarageResync
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncGarageLook();
 		yield return new WaitForEndOfFrame();
+		ClientSend.ResyncDoors();
+		yield return new WaitForEndOfFrame();
+		ClientSend.ResyncWheelBalancer();
+		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncSkills();
 		yield return new WaitForEndOfFrame();
 		ClientSend.ResyncEngineStandPacket(true);

@@ -38,6 +38,7 @@ public static class ClientHandle
 		var message = packet.Read<string>();
 
 		MelonLogger.Msg($"[ClientHandle->DisconnectPacket] You've been disconnected from server: {message}");
+		Client.LastDisconnectMessage = message;
 		if (ClientData.UserData.scene == GameScene.menu)
 			UICustomPanel.CreateInfoPanel($"You've been disconnected from server: {message}");
 		Client.Instance.Disconnect(true);
@@ -49,7 +50,14 @@ public static class ClientHandle
 
 		ClientData.Instance.connectedClients[data.playerID] = data;
 		UILobby.RefreshPlayers();
-		//MelonLogger.Msg("[ClientHandle->UserDataPacket] Receive userData from server.");
+
+		if (data.playerID != ClientData.UserData.playerID && data.userObject != null)
+		{
+			data.userObject.name = data.username;
+			var billboard = data.userObject.GetComponent<InfoBillboard>();
+			if (billboard != null)
+				billboard.SetName(data.username);
+		}
 	}
 
 	public static void ContentsInfoPacket(Packet _packet)
@@ -99,7 +107,8 @@ public static class ClientHandle
 	{
 		var id = packet.ReadInt();
 		var position = packet.Read<Vector3Serializable>();
-		Movement.UpdatePosition(id, position);
+		var isCrouching = packet.Read<bool>();
+		Movement.UpdatePosition(id, position, isCrouching);
 		packet.Dispose();
 	}
 
@@ -181,14 +190,10 @@ public static class ClientHandle
 			_item = packet.Read<ModGroupItem>();
 
 		if (aType == ModWheelBalancerActionType.remove)
-		{
-			GameData.Instance.wheelBalancer.ResetActions();
-			GameData.Instance.wheelBalancer.Clear();
-		}
+			MelonCoroutines.Start(Garage.Tools.WheelBalancer.ApplyRemove());
 		else
 		{
 			WheelBalancer.listen = false;
-			//MelonLogger.Msg("CL: Received WheelBalance!");
 			GameData.Instance.wheelBalancer.SetGroupOnWheelBalancer(_item!.ToGame(_item), true);
 		}
 	}
@@ -272,7 +277,13 @@ public static class ClientHandle
 	{
 		int sectionIndex  = _packet.ReadInt();
 		int materialIndex = _packet.ReadInt();
-		MelonCoroutines.Start(Garage.GarageCustomizationLogic.ApplyGarageLook(sectionIndex, materialIndex));
+		Garage.GarageCustomizationLogic.QueueGarageLook(sectionIndex, materialIndex);
+	}
+
+	public static void DoorStatePacket(Packet _packet)
+	{
+		var state = _packet.Read<ModDoorState>();
+		MelonCoroutines.Start(Garage.DoorSyncLogic.ApplyDoorState(state));
 	}
 	
 	public static void CarPaintPacket(Packet _packet)

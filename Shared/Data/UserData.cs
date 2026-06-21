@@ -32,6 +32,7 @@ public class UserData
 	[JsonIgnore] [NonSerialized] public Animator userAnimator;
 
 	[JsonIgnore] public bool isInCar = false;
+	[JsonIgnore] public bool isCrouching;
 	[JsonIgnore] public int carLoaderID = -1; // -1 means not in any car
 
 	[JsonIgnore] [NonSerialized] public GameObject userObject;

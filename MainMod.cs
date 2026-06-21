@@ -81,10 +81,7 @@ namespace CMS21Together
 				string id = _pendingInviteServerID;
 				_pendingInviteServerID = null;
 				ClientData.UserData.selectedNetworkType = NetworkType.Steam;
-				string username = !string.IsNullOrEmpty(ClientData.UserData.username)
-					? ClientData.UserData.username
-					: SteamClient.Name;
-				UIActions.StartClient(username, id);
+				UIActions.StartClient(SteamClient.Name, id);
 			}
 
 			if (!Client.Instance.isConnected) return;
@@ -148,7 +145,12 @@ namespace CMS21Together
 			isClosing = true;
 			TogetherModManager.SavePreferences();
 			if (Server.Instance.isRunning)
+			{
 				MelonCoroutines.Start(Server.Instance.CloseServer());
+				float deadline = Time.realtimeSinceStartup + 3f;
+				while (!Server.CloseServerComplete && Time.realtimeSinceStartup < deadline)
+					System.Threading.Thread.Sleep(50);
+			}
 		}
 	}
 }

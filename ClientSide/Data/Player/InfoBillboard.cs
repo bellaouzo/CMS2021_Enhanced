@@ -14,6 +14,8 @@ public class InfoBillboard : MonoBehaviour
 	
 	private Transform cam;
 	private Transform textTransform;
+	private TextMesh nameMesh;
+	private TextMesh outlineMesh;
 	
 	void Start()
 	{
@@ -23,20 +25,20 @@ public class InfoBillboard : MonoBehaviour
 		textObj.transform.SetParent(transform);
 		textObj.transform.localPosition = new Vector3(0, 20, 0);
 		
-		TextMesh textMesh = textObj.AddComponent<TextMesh>();
-		textMesh.font = Font.GetDefault();
-		textMesh.text = gameObject.name;
-		textMesh.characterSize = 0.07f;
-		textMesh.fontSize = 30;
-		textMesh.alignment = TextAlignment.Center;
-		textMesh.anchor = TextAnchor.MiddleCenter;
-		textMesh.color = Color.white;
+		nameMesh = textObj.AddComponent<TextMesh>();
+		nameMesh.font = Font.GetDefault();
+		nameMesh.text = gameObject.name;
+		nameMesh.characterSize = 0.07f;
+		nameMesh.fontSize = 30;
+		nameMesh.alignment = TextAlignment.Center;
+		nameMesh.anchor = TextAnchor.MiddleCenter;
+		nameMesh.color = Color.white;
 		
 		GameObject outlineObj = new GameObject("outline");
 		outlineObj.transform.SetParent(textObj.transform);
 		outlineObj.transform.localPosition = new Vector3(0, 0, 0.05f);
 		
-		TextMesh outlineMesh = outlineObj.AddComponent<TextMesh>();
+		outlineMesh = outlineObj.AddComponent<TextMesh>();
 		outlineMesh.font = Font.GetDefault();
 		outlineMesh.text = gameObject.name;
 		outlineMesh.characterSize = 0.071f;
@@ -46,6 +48,13 @@ public class InfoBillboard : MonoBehaviour
 		outlineMesh.color = Color.black;
 		
 		textTransform = textObj.transform;
+	}
+
+	public void SetName(string username)
+	{
+		gameObject.name = username;
+		if (nameMesh != null) nameMesh.text = username;
+		if (outlineMesh != null) outlineMesh.text = username;
 	}
 
 	void Update()

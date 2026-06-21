@@ -64,10 +64,11 @@ public enum PacketTypes
     carFluid, exp, point, resync,
     carWash, carPaint, useWelder, repairPart, parkAdd, parkRemove,
     playerInCar, carEngineSound,
-    dynoRun, wheelAlignment, headlampAlignment, garageCustomization
+    dynoRun, wheelAlignment, headlampAlignment, garageCustomization,
+    doorState
 }
 ```
-The last four (`dynoRun`, `wheelAlignment`, `headlampAlignment`, `garageCustomization`) were added in this session.
+**Note:** `position` packet now includes a trailing `bool isCrouching` after `Vector3Serializable`.
 
 ---
 
@@ -195,6 +196,53 @@ Without this guard, 41 spurious packets fire every garage load.
 **File:** `ServerSide/Server.cs` — `InitializeServerData()` packet handler dictionary  
 **Problem:** Four new packet types had handler methods in `ServerHandle.cs` but were never registered in the server's dispatch dictionary. All four were silently dropped by the server.  
 **Fix:** Added entries for `dynoRun`, `wheelAlignment`, `headlampAlignment`, `garageCustomization`.
+
+---
+
+## Multiplayer sync fixes (2026-06-20)
+
+### Feature 10 — Garage customization reliability
+**File:** `ClientSide/Data/Garage/GarageCustomizationLogic.cs`  
+**Fixes:**
+- Host `SendInitial()` seeds `ServerData.garageLook` from `GarageLookManager.GetSections()` (fallback: save `MaterialIndexes`) — wired from `ClientData.InitializeGameData` alongside `GarageUpgradeHooks.SendInitial()`
+- Queued applier (`QueueGarageLook` / `ProcessGarageLookQueue`) replaces per-packet coroutines; waits for `GarageLookManager.Instance`, resets `listen` after apply
+- `applyingRemote` flag suppresses hook during load/apply; server ignores `materialIndex < 0`
+
+### Feature 11 — Door animation sync
+**New files:** `ClientSide/Data/Garage/DoorSyncLogic.cs`, `Shared/Data/Vanilla/ModDoorState.cs`  
+**New packet:** `doorState` — payload: `ModDoorState { doorId, isOpen, carLoaderID }`  
+**Hooks:** `GarageTeleport.Use`, `PaintshopManager.CloseDoors`, `ParkingSpace.OpenDoor`/`CloseDoor`, `CarLoader.CloseCarAnimated`, `GameScript.OpenDoorsBeforeExitFromInterior`  
+**Server state:** `ServerData.doorStates`  
+**Resync:** `ResyncDoors` in `GarageResync.ResyncGarage()` chain
+
+### Feature 12 — Steam username on join
+**Files:** `UIActions.cs`, `MainMod.cs`, `UICustomPanel.cs`, `InfoBillboard.cs`, `ClientHandle.cs`  
+**Rule:** Steam clients joining (not hosting) always connect as `SteamClient.Name`. Join panel defaults to Steam name when Steam network selected. `InfoBillboard.SetName()` refreshes name tags on `UserDataPacket`.
+
+### Feature 13 — Crouch sync
+**New file:** `ClientSide/Data/Player/CrouchSync.cs`  
+**Hook:** `FPSCamera.UpdateCrouchingState` Postfix  
+**Wire format:** `position` packet appends `bool isCrouching`; stored on `UserData.isCrouching`; remote avatar gets Y offset + animator bool if parameter exists (`Crouch`, `IsCrouching`, `crouch`)
+
+### Feature 14 — Car wash animation + server state fix
+**File:** `ClientSide/Data/Garage/Tools/CarWashLogic.cs`, `ServerSide/Data/ServerData.cs`  
+**Fixes:**
+- Swapped inverted `SetCarWash` interior/exterior branches to match client `WashCar`
+- Remote apply runs `DoWorkAnim` on outdoor `CarWashLogic` / `InteriorDetailingToolkitLogic` before car tweens
+
+### Feature 15 — Wheel balancer removal
+**Files:** `WheelBalancer.cs`, `ClientHandle.cs`, `ServerHandle.cs`, `ServerResyncs.cs`  
+**Fixes:**
+- Remote remove now runs `Clear()` as coroutine via `WheelBalancer.ApplyRemove()` (was calling `IEnumerator` synchronously)
+- `ServerHandle.WheelBalancePacket` calls `SetWheelBalancerState`
+- `ResyncWheelBalancer` added to garage resync chain
+
+### Feature 16 — Server shutdown kick
+**Files:** `Server.cs`, `MainMod.cs`, `Client.cs`, `ClientHandle.cs`, `UIActions.cs`  
+**Fixes:**
+- `CloseServer` waits 1.5s after disconnect packets before closing sockets; sets `CloseServerComplete`
+- `OnApplicationQuit` blocks up to 3s for close to finish
+- `Client.LastDisconnectMessage` shows server shutdown text instead of generic connect failure
 
 ---
 
@@ -327,6 +375,31 @@ All decompiled game code is in `_decomp/` at the project root:
 
 ---
 
+### New files (sync fixes)
+| File | Purpose |
+|------|---------|
+| `ClientSide/Data/Garage/DoorSyncLogic.cs` | Door hooks + apply coroutine |
+| `ClientSide/Data/Player/CrouchSync.cs` | Crouch state hook |
+| `Shared/Data/Vanilla/ModDoorState.cs` | Door sync DTO |
+
+### Modified files (sync fixes)
+| File | What changed |
+|------|-------------|
+| `GarageCustomizationLogic.cs` | SendInitial, queued apply, lifecycle |
+| `CarWashLogic.cs` | DoWorkAnim on remote; SetCarWash inversion fix in ServerData |
+| `WheelBalancer.cs` | ApplyRemove coroutine |
+| `Movement.cs` | Crouch in position sync |
+| `ClientSend.cs` / `ClientHandle.cs` | doorState, crouch position, resync helpers |
+| `ServerHandle.cs` / `ServerSend.cs` / `ServerResyncs.cs` | doorState, wheel balancer authority, crouch position |
+| `GarageResync.cs` | ResyncDoors, ResyncWheelBalancer |
+| `UIActions.cs` / `MainMod.cs` / `UICustomPanel.cs` | Steam username rules |
+| `InfoBillboard.cs` | SetName for live tag updates |
+| `Server.cs` / `MainMod.cs` | Reliable server shutdown |
+| `PacketTypes.cs` | `doorState` |
+| `CMS21-Together.csproj` | 3 new compile entries |
+
+---
+
 ## Build + test checklist
 1. `dotnet build CMS21-Together.csproj -c Release` — must be 0 errors, 0 warnings
 2. Close game if open
@@ -334,3 +407,14 @@ All decompiled game code is in `_decomp/` at the project root:
 4. MelonLoader log: `C:\Program Files (x86)\Steam\steamapps\common\Car Mechanic Simulator 2021\MelonLoader\Latest.log`
 5. Unity Player log: `%LocalLow%\Red Dot Games\Car Mechanic Simulator 2021\Player.log`
 6. Crash dumps: `%LocalAppData%\Temp\Red Dot Games\Car Mechanic Simulator 2021\Crashes`
+
+### Two-PC Steam test matrix
+| Test | Pass criteria |
+|------|---------------|
+| Garage look | Host customized garage matches on join/rejoin; live changes sync |
+| Doors | Paint shop interior, parking, car doors match open/closed state |
+| Username | Each Steam account shows distinct name in lobby + name tag |
+| Crouch | Remote player appears crouched when sender crouches |
+| Car wash | Outdoor tunnel + interior detailing show tool animation + clean result on remote |
+| Wheel balancer | Mount → balance → remove; remote sees empty balancer |
+| Server close | Host quits → client gets shutdown message and returns to menu |

@@ -163,34 +163,41 @@ public static class CarWashLogic
 			yield break;
 		}
 
-		// Business Rule: Set listen flag to false to prevent feedback loop
 		listen = false;
 
-		try
+		if (!interior)
 		{
-			// Business Logic: Apply wash effect based on interior/exterior
-			if (!interior)
+			var outdoorWash = Object.FindObjectOfType<global::CarWashLogic>();
+			if (outdoorWash != null)
 			{
-				// Business Logic: Use longer duration (3f) to match interior wash and ensure animation is visible
-				// Observation: Original duration (0.1f) was too short, causing animation to not be visible
-				GameData.Instance.carLoaders[carLoaderID].TweenExteriorDustWash(0f, 1f, 3f);
-				MelonLogger.Msg($"[CarWashLogic->WashCar] Exterior wash applied to carLoaderID: {carLoaderID} with 3s duration.");
+				var anim = outdoorWash.DoWorkAnim(GameData.Instance.carLoaders[carLoaderID]);
+				if (anim != null)
+				{
+					while (anim.MoveNext())
+						yield return anim.Current;
+				}
 			}
-			else
+
+			GameData.Instance.carLoaders[carLoaderID].TweenExteriorDustWash(0f, 1f, 3f);
+			MelonLogger.Msg($"[CarWashLogic->WashCar] Exterior wash applied to carLoaderID: {carLoaderID} with 3s duration.");
+		}
+		else
+		{
+			var interiorToolkit = Object.FindObjectOfType<InteriorDetailingToolkitLogic>();
+			if (interiorToolkit != null)
 			{
-				GameData.Instance.carLoaders[carLoaderID].TweenInteriorConditionAndDust(1f, 0f, 3f);
-				MelonLogger.Msg($"[CarWashLogic->WashCar] Interior wash applied to carLoaderID: {carLoaderID}");
+				var anim = interiorToolkit.DoWorkAnim(GameData.Instance.carLoaders[carLoaderID]);
+				if (anim != null)
+				{
+					while (anim.MoveNext())
+						yield return anim.Current;
+				}
 			}
+
+			GameData.Instance.carLoaders[carLoaderID].TweenInteriorConditionAndDust(1f, 0f, 3f);
+			MelonLogger.Msg($"[CarWashLogic->WashCar] Interior wash applied to carLoaderID: {carLoaderID}");
 		}
-		catch (System.Exception ex)
-		{
-			// Security Rule: Catch and log any exceptions during wash operation
-			MelonLogger.Error($"[CarWashLogic->WashCar] Exception during wash operation: {ex.Message}\n{ex.StackTrace}");
-		}
-		finally
-		{
-			// Business Rule: Reset listen flag after operation completes
-			listen = true;
-		}
+
+		listen = true;
 	}
 }

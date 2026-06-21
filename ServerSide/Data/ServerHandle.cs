@@ -99,9 +99,12 @@ public static class ServerHandle
 	public static void PositionPacket(int fromClient, Packet packet)
 	{
 		var _position = packet.Read<Vector3Serializable>();
-		ServerData.Instance.connectedClients[fromClient].position = _position;
+		var isCrouching = packet.Read<bool>();
 
-		ServerSend.PositionPacket(fromClient, _position);
+		ServerData.Instance.connectedClients[fromClient].position = _position;
+		ServerData.Instance.connectedClients[fromClient].isCrouching = isCrouching;
+
+		ServerSend.PositionPacket(fromClient, _position, isCrouching);
 	}
 
 	public static void RotationPacket(int fromClient, Packet packet)
@@ -470,13 +473,16 @@ public static class ServerHandle
 		int aType = packet.ReadInt();
 		ModGroupItem item;
                 
-		if ((ModWheelBalancerActionType)aType == ModWheelBalancerActionType.start ||(ModWheelBalancerActionType)aType == ModWheelBalancerActionType.setGroup)
+		if ((ModWheelBalancerActionType)aType == ModWheelBalancerActionType.remove)
 		{
-			item = packet.Read<ModGroupItem>();
-			ServerSend.WheelBalancerPacket(fromClient, (ModWheelBalancerActionType)aType, item);
+			ServerData.Instance.SetWheelBalancerState(null);
+			ServerSend.WheelBalancerPacket(fromClient, (ModWheelBalancerActionType)aType);
 			return;
 		}
-		ServerSend.WheelBalancerPacket(fromClient, (ModWheelBalancerActionType)aType);
+
+		item = packet.Read<ModGroupItem>();
+		ServerData.Instance.SetWheelBalancerState(item);
+		ServerSend.WheelBalancerPacket(fromClient, (ModWheelBalancerActionType)aType, item);
 	}
 	
 
@@ -564,10 +570,19 @@ public static class ServerHandle
 		ServerSend.HeadlampAlignmentPacket(fromClient, carLoaderID, left, right);
 	}
 
+	public static void DoorStatePacket(int fromClient, Packet packet)
+	{
+		var state = packet.Read<ModDoorState>();
+		ServerData.Instance.doorStates[state.doorId] = state;
+		ServerSend.DoorStatePacket(fromClient, state);
+	}
+
 	public static void GarageCustomizationPacket(int fromClient, Packet packet)
 	{
 		int sectionIndex  = packet.ReadInt();
 		int materialIndex = packet.ReadInt();
+
+		if (materialIndex < 0) return;
 
 		ServerData.Instance.garageLook[sectionIndex] = materialIndex;
 		ServerSend.GarageCustomizationPacket(fromClient, sectionIndex, materialIndex);
@@ -637,6 +652,12 @@ public static class ServerHandle
 				break;
 			case PacketTypes.garageCustomization:
 				ServerResyncs.ResyncGarageLook(fromClient);
+				break;
+			case PacketTypes.doorState:
+				ServerResyncs.ResyncDoors(fromClient);
+				break;
+			case PacketTypes.wheelBalance:
+				ServerResyncs.ResyncWheelBalancer(fromClient);
 				break;
 			case PacketTypes.skillChange:
 				ServerResyncs.ResyncSkills(fromClient);

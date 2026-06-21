@@ -73,9 +73,12 @@ public class Server
 		Client.Instance.ConnectToServer(NetworkType.TCP, "127.0.0.1");
 	}
 
+	public static bool CloseServerComplete;
+
 	public IEnumerator CloseServer()
 	{
 		if (!isRunning) yield break;
+		CloseServerComplete = false;
 
 		MelonLogger.Msg("[Server->CloseServer] Saving players infos...");
 		ModSaveData save = SavesManager.ModSaves[SavesManager.currentSaveIndex];
@@ -101,7 +104,7 @@ public class Server
 		save.money = GlobalData.PlayerMoney;
 		
 		SavesManager.SaveModSave(SavesManager.currentSaveIndex);
-		yield return new WaitForSeconds(1);
+		yield return new WaitForSeconds(1.5f);
 		MelonLogger.Msg("[Server->CloseServer] Successfully Saved players infos!");
 		
 		isRunning = false;
@@ -117,6 +120,7 @@ public class Server
 			packetHandlers.Clear();
 
 		MelonLogger.Msg("[Server->CloseServer] Server Closed.");
+		CloseServerComplete = true;
 	}
 
 	private void UDPReceiveCallback(IAsyncResult result)
@@ -238,7 +242,8 @@ public class Server
 			{ (int)PacketTypes.dynoRun, ServerHandle.DynoRunPacket },
 			{ (int)PacketTypes.wheelAlignment, ServerHandle.WheelAlignmentPacket },
 			{ (int)PacketTypes.headlampAlignment, ServerHandle.HeadlampAlignmentPacket },
-			{ (int)PacketTypes.garageCustomization, ServerHandle.GarageCustomizationPacket }
+			{ (int)PacketTypes.garageCustomization, ServerHandle.GarageCustomizationPacket },
+			{ (int)PacketTypes.doorState, ServerHandle.DoorStatePacket }
 		};
 	}
 }

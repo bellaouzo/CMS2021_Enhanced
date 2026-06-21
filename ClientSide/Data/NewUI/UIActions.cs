@@ -23,7 +23,12 @@ public static class UIActions
 
 	public static void StartClient(string username, string address)
 	{
-		ClientData.UserData.username = username;
+		if (ClientData.UserData.selectedNetworkType == NetworkType.Steam && !Server.Instance.isRunning && ApiCalls.useSteam)
+			ClientData.UserData.username = SteamClient.Name;
+		else
+			ClientData.UserData.username = username;
+
+		EnsurePlayerIdentity();
 		if (ClientData.UserData.selectedNetworkType != NetworkType.Steam)
 			ClientData.UserData.ip = address;
 		else
@@ -44,12 +49,23 @@ public static class UIActions
 		Client.Instance.OnDisconnected += () =>
 		{
 			UICore.ShowPanel(UICore.MP_Main);
-			UICustomPanel.CreateInfoPanel("Failed to connect to server !");
+			var message = !string.IsNullOrEmpty(Client.LastDisconnectMessage)
+				? Client.LastDisconnectMessage
+				: "Failed to connect to server !";
+			UICustomPanel.CreateInfoPanel(message);
+			Client.LastDisconnectMessage = null;
 			if (Server.Instance.isRunning)
 				MelonCoroutines.Start(Server.Instance.CloseServer());
 		};
 		Client.Instance.ConnectToServer(ClientData.UserData.selectedNetworkType, address);
 	}
+
+	private static void EnsurePlayerIdentity()
+	{
+		if (string.IsNullOrEmpty(ClientData.UserData.playerGUID))
+			ClientData.UserData.playerGUID = Guid.NewGuid().ToString();
+	}
+
 	public static void StartServer(string username, int save_index)
 	{
 		ClientData.UserData.username = username;

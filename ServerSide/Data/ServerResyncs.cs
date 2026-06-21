@@ -117,6 +117,27 @@ public static class ServerResyncs
 		MelonLogger.Msg("[ServerResyncs] Sent garage look resync.");
 	}
 
+	public static void ResyncDoors(int fromClient)
+	{
+		foreach (var kvp in ServerData.Instance.doorStates)
+			ServerSend.DoorStatePacket(fromClient, kvp.Value, resync: true);
+
+		MelonLogger.Msg("[ServerResyncs] Sent door state resync.");
+	}
+
+	public static void ResyncWheelBalancer(int fromClient)
+	{
+		var balancer = ServerData.Instance.wheelBalancer;
+		if (!balancer.isMounted || balancer.groupItem == null)
+			ServerSend.WheelBalancerPacket(fromClient, ModWheelBalancerActionType.remove, resync: true);
+		else if (balancer.additionalState)
+			ServerSend.WheelBalancerPacket(fromClient, ModWheelBalancerActionType.start, balancer.groupItem, resync: true);
+		else
+			ServerSend.WheelBalancerPacket(fromClient, ModWheelBalancerActionType.setGroup, balancer.groupItem, resync: true);
+
+		MelonLogger.Msg("[ServerResyncs] Sent wheel balancer resync.");
+	}
+
 	public static void ResyncSkills(int fromClient)
 	{
 		foreach (var kvp in ServerData.Instance.sharedSkills)

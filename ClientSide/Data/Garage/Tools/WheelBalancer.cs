@@ -67,4 +67,21 @@ public static class WheelBalancer
             
             ClientSend.SendWheelBalancer(2);
         }
+
+        public static IEnumerator ApplyRemove()
+        {
+            while (!ClientData.GameReady)
+                yield return new WaitForSeconds(0.25f);
+            yield return new WaitForEndOfFrame();
+
+            listen = false;
+            GameData.Instance.wheelBalancer.ResetActions();
+            var clearRoutine = GameData.Instance.wheelBalancer.Clear();
+            if (clearRoutine != null)
+            {
+                while (clearRoutine.MoveNext())
+                    yield return clearRoutine.Current;
+            }
+            listen = true;
+        }
 }

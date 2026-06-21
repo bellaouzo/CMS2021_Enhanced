@@ -45,11 +45,12 @@ public class ClientSend
 		}
 	}
 
-	public static void PositionPacket(Vector3Serializable position)
+	public static void PositionPacket(Vector3Serializable position, bool isCrouching = false)
 	{
 		using (var packet = new Packet((int)PacketTypes.position))
 		{
 			packet.Write(position);
+			packet.Write(isCrouching);
 			SendData(packet);
 		}
 	}
@@ -495,6 +496,33 @@ public class ClientSend
 		using (var packet = new Packet((int)PacketTypes.resync))
 		{
 			packet.Write(PacketTypes.skillChange);
+			SendData(packet);
+		}
+	}
+
+	public static void ResyncDoors()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.doorState);
+			SendData(packet);
+		}
+	}
+
+	public static void ResyncWheelBalancer()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.wheelBalance);
+			SendData(packet);
+		}
+	}
+
+	public static void DoorStatePacket(string doorId, bool isOpen, int carLoaderID = -1)
+	{
+		using (var packet = new Packet((int)PacketTypes.doorState))
+		{
+			packet.Write(new ModDoorState(doorId, isOpen, carLoaderID));
 			SendData(packet);
 		}
 	}

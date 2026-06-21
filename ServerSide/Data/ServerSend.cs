@@ -35,12 +35,13 @@ public static class ServerSend
 		}
 	}
 	
-	public static void PositionPacket(int fromClient, Vector3Serializable position)
+	public static void PositionPacket(int fromClient, Vector3Serializable position, bool isCrouching = false)
 	{
 		using (var packet = new Packet((int)PacketTypes.position))
 		{
 			packet.Write(fromClient);
 			packet.Write(position);
+			packet.Write(isCrouching);
 
 			SendDataToAll(fromClient, packet);
 		}
@@ -394,14 +395,25 @@ public static class ServerSend
 
 	#endregion
 
-	public static void WheelBalancerPacket(int fromClient, ModWheelBalancerActionType aType, ModGroupItem item=null)
+	public static void WheelBalancerPacket(int fromClient, ModWheelBalancerActionType aType, ModGroupItem item=null, bool resync = false)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.wheelBalance))
 		{
 			_packet.Write(aType);
 			if(item != null)   {_packet.Write(item);}
 
-			SendDataToAll(fromClient, _packet);
+			if (resync) SendData(fromClient, _packet);
+			else SendDataToAll(fromClient, _packet);
+		}
+	}
+
+	public static void DoorStatePacket(int fromClient, ModDoorState state, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.doorState))
+		{
+			packet.Write(state);
+			if (resync) SendData(fromClient, packet);
+			else SendDataToAll(fromClient, packet);
 		}
 	}
 
