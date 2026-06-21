@@ -24,6 +24,8 @@ public static class GarageCustomizationLogic
             return;
         }
 
+        if (materialIndex < 0) return;
+
         ClientSend.GarageCustomizationPacket(sectionIndex, materialIndex);
         MelonLogger.Msg($"[GarageCustomizationLogic] Section {sectionIndex} material {materialIndex} sent.");
     }

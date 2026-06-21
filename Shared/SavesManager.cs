@@ -45,34 +45,30 @@ public static class SavesManager
 
 	private static void LoadExistingModSaves()
 	{
-		if (Directory.Exists(SAVE_FOLDER_PATH))
+		if (!Directory.Exists(SAVE_FOLDER_PATH)) return;
+
+		var saveFolder = new DirectoryInfo(SAVE_FOLDER_PATH);
+		var saveFiles = saveFolder.GetFiles("save_*.cms21mp");
+
+		for (var i = 0; i < saveFiles.Length; i++)
 		{
-			var saveFolder = new DirectoryInfo(SAVE_FOLDER_PATH);
-			var saveFiles = saveFolder.GetFiles("save_*.cms21mp"); // get all saves files.
+			var serializedSave = File.ReadAllText(saveFiles[i].ToString());
+			ModSaveData modSave = JsonConvert.DeserializeObject<ModSaveData>(serializedSave);
+			ModSaves[modSave.saveIndex] = modSave;
 
-			var vanillaSaveArray = new Il2CppReferenceArray<SaveData>(4);
-			for (var i = 0; i < 4; i++) vanillaSaveArray[i] = GetSave(i);
-
-			for (var i = 0; i < saveFiles.Length; i++)
+			if (modSave.alreadyLoaded)
 			{
-				var saveFile = saveFiles[i];
-				var serializedSave = File.ReadAllText(saveFile.ToString());
-				ModSaveData modSave = JsonConvert.DeserializeObject<ModSaveData>(serializedSave);
-
-				ModSaves[modSave.saveIndex] = modSave;
-				if (modSave.alreadyLoaded)
-				{
-					var tempSaveArray = new Il2CppReferenceArray<SaveData>(4);
-					tempSaveArray[3] = GetSave(modSave.saveIndex);
-
-					Singleton<GameManager>.Instance.GameDataManager.ReloadProfiles(tempSaveArray);
-					var copiedData = DataHelper.Copy(Singleton<GameManager>.Instance.GameDataManager.ProfileData[3]);
-
-					profileData[modSave.saveIndex] = copiedData;
-				}
+				// Display-only ProfileData for the save selection UI — the real save data is
+				// loaded fresh from file in LoadSave when the user actually starts the game.
+				var display = new ProfileData();
+				display.Init();
+				var bw = new BinaryWriter();
+				display.WriteSaveHeader(bw);
+				display.WriteSaveVersion(bw);
+				display.Name = modSave.Name;
+				display.Difficulty = GetDifficultyFromGamemode(modSave.selectedGamemode);
+				profileData[modSave.saveIndex] = display;
 			}
-
-			Singleton<GameManager>.Instance.GameDataManager.ReloadProfiles(vanillaSaveArray);
 		}
 	}
 	
@@ -145,9 +141,27 @@ public static class SavesManager
 
 			if (saveData.alreadyLoaded)
 			{
+				// ReloadProfiles modifies ProfileData slots in-place. We redirect slot 3 to a
+				// fresh object so ReloadProfiles has a valid non-null target to write into,
+				// without touching the original vanilla slot 3 object.
+				var originalSlot3 = profileData[3];
+				var freshSlot3 = new ProfileData();
+				freshSlot3.Init();
+				var bw3 = new BinaryWriter();
+				freshSlot3.WriteSaveHeader(bw3);
+				freshSlot3.WriteSaveVersion(bw3);
+				profileData[3] = freshSlot3;
+
+				var freshSaveArray = new Il2CppReferenceArray<SaveData>(4);
+				freshSaveArray[3] = GetSave(index);
+				gameManager.GameDataManager.ReloadProfiles(freshSaveArray);
+
+				profileData[index] = profileData[3];   // freshSlot3 now has real save data
+				profileData[3] = originalSlot3;         // restore vanilla slot 3
+
 				gameManager.ProfileManager.selectedProfile = index;
 				gameManager.RDGPlayerPrefs.SetInt("selectedProfile", index);
-				Singleton<GameManager>.Instance.ProfileManager.SetDifficultyForCurrentProfile(level); // ensure gamemode is not loss
+				Singleton<GameManager>.Instance.ProfileManager.SetDifficultyForCurrentProfile(level);
 				gameManager.ProfileManager.Load();
 
 				MelonLogger.Msg("-------------------Save Info---------------------");
