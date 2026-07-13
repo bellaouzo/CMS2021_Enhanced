@@ -36,29 +36,43 @@ public static class SalonSyncLogic
 			MelonCoroutines.Start(ProcessSalonQueue());
 	}
 
-	// Fires when the host's SalonManager loads a car into a catalog display slot.
-	[HarmonyPatch(typeof(SalonManager), "LoadCar", typeof(CarLoader), typeof(CarsIdWithConfig))]
-	[HarmonyPostfix]
-	public static void SalonLoadCarHook(SalonManager __instance, CarLoader carLoader, CarsIdWithConfig randomCar)
+	// Called by SceneManager when the host enters Auto_salon.
+	// SalonManager.LoadCar is an IEnumerator invoked from within LoadCars.MoveNext() at the IL2CPP
+	// native level, so Harmony patches on it are silently bypassed. Instead we poll carLoaders
+	// directly after the scene finishes loading.
+	public static IEnumerator ScanSalonCatalog()
 	{
-		if (!Client.Instance.isConnected || !listen) return;
-		if (!Server.Instance.isRunning) return;
-		if (__instance?.carLoaders == null || carLoader == null || randomCar == null) return;
-		if (SceneManager.CurrentScene() != GameScene.auto_salon) return;
+		if (!Client.Instance.isConnected || !Server.Instance.isRunning) yield break;
 
-		int slotIndex = -1;
-		for (int i = 0; i < __instance.carLoaders.Length; i++)
+		yield return LoadWait.WaitForComponent<SalonManager>(30f);
+		if (LoadWait.LastResult != LoadWaitResult.Success) yield break;
+
+		// Wait until all non-null carLoaders report IsCarLoaded (or timeout — proceed with whatever loaded).
+		yield return LoadWait.WaitForPredicate(() =>
 		{
-			if (__instance.carLoaders[i] == carLoader)
+			var sm = SalonManager.instance;
+			if (sm?.carLoaders == null) return false;
+			for (int i = 0; i < sm.carLoaders.Length; i++)
 			{
-				slotIndex = i;
-				break;
+				var loader = sm.carLoaders[i];
+				if (loader != null && !loader.IsCarLoaded()) return false;
 			}
-		}
-		if (slotIndex < 0) return;
+			return true;
+		}, 30f, "salon catalog load");
+		if (LoadWait.LastResult == LoadWaitResult.Disconnected) yield break;
 
-		ClientSend.SalonCarPacket(randomCar.CarID, randomCar.ConfigVersion, slotIndex);
-		MelonLogger.Msg($"[SalonSyncLogic] Sent catalog slot {slotIndex}: {randomCar.CarID} v{randomCar.ConfigVersion}");
+		var sm2 = SalonManager.instance;
+		if (sm2?.carLoaders == null) yield break;
+
+		for (int i = 0; i < sm2.carLoaders.Length; i++)
+		{
+			var loader = sm2.carLoaders[i];
+			if (loader == null || !loader.IsCarLoaded()) continue;
+			if (string.IsNullOrEmpty(loader.carToLoad)) continue;
+
+			ClientSend.SalonCarPacket(loader.carToLoad, loader.ConfigVersion, i);
+			MelonLogger.Msg($"[SalonSyncLogic] Sent catalog slot {i}: {loader.carToLoad} v{loader.ConfigVersion}");
+		}
 	}
 
 	// Fires when the host switches which car is shown in the configurator detail view.

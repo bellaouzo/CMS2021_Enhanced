@@ -98,6 +98,6 @@ public static class GarageUpgradeHooks
 		yield return new WaitForEndOfFrame();
 		sentInitial = true;
 		listenToUpgrades = true;
-		MelonLogger.Msg($"[GarageUpgradeHooks->SendInitial] Sent initials upgrades to server");
+		MelonLogger.Msg("[GarageUpgradeHooks->SendInitial] Sent initial upgrades to server.");
 	}
 }

@@ -587,6 +587,18 @@ public static class ServerHandle
 		ServerSend.SalonCarPacket(fromClient, data);
 	}
 
+	public static void SceneCarPacket(int fromClient, Packet packet)
+	{
+		var data = packet.Read<ModSceneCar>();
+		switch (data.sceneType)
+		{
+			case SceneCarType.Auction: ServerData.Instance.auctionCatalog[data.slotIndex]  = data; break;
+			case SceneCarType.Barn:    ServerData.Instance.barnCatalog[data.slotIndex]     = data; break;
+			case SceneCarType.Junkyard: ServerData.Instance.junkyardCatalog[data.slotIndex] = data; break;
+		}
+		ServerSend.SceneCarPacket(fromClient, data);
+	}
+
 	public static void GarageCustomizationPacket(int fromClient, Packet packet)
 	{
 		int sectionIndex  = packet.ReadInt();
@@ -668,6 +680,10 @@ public static class ServerHandle
 				break;
 			case PacketTypes.salonCar:
 				ServerResyncs.ResyncSalon(fromClient);
+				break;
+			case PacketTypes.sceneCarLoad:
+				SceneCarType sceneType = packet.Read<SceneCarType>();
+				ServerResyncs.ResyncSceneCars(fromClient, sceneType);
 				break;
 			case PacketTypes.wheelBalance:
 				ServerResyncs.ResyncWheelBalancer(fromClient);

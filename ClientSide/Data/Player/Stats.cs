@@ -42,7 +42,7 @@ public static class Stats
 		sentInitial = true;
 		listentoAddMoney = true;
 		listentoAddScrap = true;
-		MelonLogger.Msg("[Stats->SendInitialStats] Sent Initial Stats !");
+		MelonLogger.Msg("[Stats->SendInitialStats] Sent initial stats.");
 	}
 
 	public static IEnumerator UpdateStats(ModStats type, int value, bool initial)
@@ -92,7 +92,7 @@ public static class Stats
 
 		ClientData.Instance.exp = GlobalData.PlayerExp;
 
-		MelonLogger.Msg($"Send XP Packet : {GlobalData.PlayerExp} , {GlobalData.PlayerLevel}");
+		MelonLogger.Msg($"[Stats->AddPlayerExpHook] Sent XP packet: exp={GlobalData.PlayerExp}, level={GlobalData.PlayerLevel}.");
 		ClientSend.ExpPacket(GlobalData.PlayerExp, GlobalData.PlayerLevel);
 	}
 	
@@ -103,7 +103,7 @@ public static class Stats
 		if (!Client.Instance.isConnected) return;
 		if (ClientData.Instance.gamemode == Gamemode.Sandbox) return;
 		
-		MelonLogger.Msg($"Send Point Packet : {__instance.AvailablePoints}");
+		MelonLogger.Msg($"[Stats->AddPointsHook] Sent points packet: available={__instance.AvailablePoints}.");
 		ClientSend.PointPacket(__instance.AvailablePoints);
 	}
 	

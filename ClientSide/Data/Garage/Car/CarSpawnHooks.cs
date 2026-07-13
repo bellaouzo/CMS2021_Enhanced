@@ -29,6 +29,7 @@ public static class CarSpawnHooks
 		if (!Client.Instance.isConnected || !listenToLoad)
 		{
 			listenToLoad = true;
+			return;
 		}
 		
 		int indexFromCarLoaderName = Helper.GetIndexFromCarLoaderName(file);

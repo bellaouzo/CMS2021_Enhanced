@@ -79,7 +79,7 @@ public static class UICore
 				update_notice = true;
 				break;
 			case VersionStatus.Latest:
-				MelonLogger.Msg("Mod is up-to-date !");
+				MelonLogger.Msg("[UICore->CheckModVersion] Mod is up-to-date.");
 				break;
 			case VersionStatus.Dev:
 				UICustomPanel.CreateInfoPanel("You are using a development build !");

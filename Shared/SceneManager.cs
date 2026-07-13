@@ -40,6 +40,20 @@ public static class SceneManager
 		else if (newSceneName == "Auto_salon")
 		{
 			ClientSide.Data.Handle.ClientSend.ResyncSalon();
+			if (Server.Instance != null && Server.Instance.isRunning)
+				MelonCoroutines.Start(CMS21Together.ClientSide.Data.Salon.SalonSyncLogic.ScanSalonCatalog());
+		}
+		else if (newSceneName == "Barn")
+		{
+			ClientSide.Data.Handle.ClientSend.ResyncSceneCars(CMS21Together.Shared.Data.Vanilla.SceneCarType.Barn);
+		}
+		else if (newSceneName == "Junkyard")
+		{
+			ClientSide.Data.Handle.ClientSend.ResyncSceneCars(CMS21Together.Shared.Data.Vanilla.SceneCarType.Junkyard);
+		}
+		else if (newSceneName == "Auctions")
+		{
+			ClientSide.Data.Handle.ClientSend.ResyncSceneCars(CMS21Together.Shared.Data.Vanilla.SceneCarType.Auction);
 		}
 		else if (newSceneName == "garage" || newSceneName == "Christmas" || newSceneName == "Easter" || newSceneName == "Halloween")
 		{
@@ -96,7 +110,8 @@ public static class SceneManager
 				CMS21Together.ClientSide.Data.Garage.GarageCustomizationLogic.Reset();
 				CMS21Together.ClientSide.Data.Garage.DoorSyncLogic.Reset();
 				CMS21Together.ClientSide.Data.Salon.SalonSyncLogic.Reset();
-				
+				CMS21Together.ClientSide.Data.Scene.SceneCarSyncLogic.Reset();
+
 				MelonLogger.Msg("[SceneManager->StopOutdoorOperations] Stopped outdoor operations (car wash, paint).");
 			}
 		}
@@ -143,6 +158,9 @@ public static class SceneManager
 		
 		if (scene == "Menu")
 			return GameScene.menu;
+
+		if (scene == "SceneLoader") return GameScene.unknow;
+		if (scene == "Auctions") return GameScene.auto_salon;
 
 		// Business Rule: Return unknown for unrecognized scene names
 		MelonLogger.Warning($"[SceneManager->UpdateScene] Unknown scene name: {scene}. Returning unknown.");

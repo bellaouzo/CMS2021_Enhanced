@@ -292,7 +292,13 @@ public static class ClientHandle
 		var data = _packet.Read<ModSalonCar>();
 		Salon.SalonSyncLogic.QueueSalonCar(data);
 	}
-	
+
+	public static void SceneCarPacket(Packet _packet)
+	{
+		var data = _packet.Read<ModSceneCar>();
+		Scene.SceneCarSyncLogic.QueueSceneCar(data);
+	}
+
 	public static void CarPaintPacket(Packet _packet)
 	{
 		ModColor color = _packet.Read<ModColor>();

@@ -429,6 +429,16 @@ public static class ServerSend
 		}
 	}
 
+	public static void SceneCarPacket(int fromClient, ModSceneCar data, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarLoad))
+		{
+			packet.Write(data);
+			if (resync) SendData(fromClient, packet);
+			else        SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void SendOilBin(int fromClient, int carLoaderID)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.oilBinUse))

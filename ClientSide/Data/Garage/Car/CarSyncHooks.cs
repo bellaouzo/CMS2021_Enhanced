@@ -16,6 +16,7 @@ public static class CarSyncHooks
 		if (!Client.Instance.isConnected) return;
 
 		var carLoaderID = __instance.gameObject.name[10] - '0' - 1;
+		if (!ClientData.Instance.loadedCars.ContainsKey(carLoaderID)) return;
 		var car = ClientData.Instance.loadedCars[carLoaderID];
 
 		if (PartUpdateHooks.FindBodyPartInDictionary(car, name, out var key))

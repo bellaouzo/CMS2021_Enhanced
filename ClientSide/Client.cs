@@ -49,7 +49,7 @@ public class Client
 		{
 			SteamId lobbyID = new SteamId();
 			lobbyID.Value = SteamworksUtils.ConvertServerID(ip);
-			MelonLogger.Msg($"LobbyID : {ip} ConvertedID : {lobbyID.Value}.");
+			MelonLogger.Msg($"[Client->ConnectToServer] Steam lobby ID: {ip}, converted: {lobbyID.Value}.");
 			
 		    steam = SteamNetworkingSockets.ConnectRelay<ClientSteam>(lobbyID);
 		}
@@ -141,7 +141,8 @@ public class Client
 			{ (int)PacketTypes.headlampAlignment, ClientHandle.HeadlampAlignmentPacket },
 			{ (int)PacketTypes.garageCustomization, ClientHandle.GarageCustomizationPacket },
 			{ (int)PacketTypes.doorState, ClientHandle.DoorStatePacket },
-			{ (int)PacketTypes.salonCar, ClientHandle.SalonCarPacket }
+			{ (int)PacketTypes.salonCar, ClientHandle.SalonCarPacket },
+			{ (int)PacketTypes.sceneCarLoad, ClientHandle.SceneCarPacket }
 		};
 	}
 

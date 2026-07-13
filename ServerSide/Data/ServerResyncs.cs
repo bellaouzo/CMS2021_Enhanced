@@ -156,4 +156,17 @@ public static class ServerResyncs
 
 		MelonLogger.Msg("[ServerResyncs] Sent skills resync.");
 	}
+
+	public static void ResyncSceneCars(int fromClient, SceneCarType sceneType)
+	{
+		var catalog = sceneType switch
+		{
+			SceneCarType.Auction => ServerData.Instance.auctionCatalog,
+			SceneCarType.Barn    => ServerData.Instance.barnCatalog,
+			_                    => ServerData.Instance.junkyardCatalog,
+		};
+		foreach (var kvp in catalog)
+			ServerSend.SceneCarPacket(fromClient, kvp.Value, resync: true);
+		MelonLogger.Msg($"[ServerResyncs] Sent {sceneType} catalog resync ({catalog.Count} entries).");
+	}
 }

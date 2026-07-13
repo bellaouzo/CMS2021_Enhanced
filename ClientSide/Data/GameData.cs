@@ -246,7 +246,7 @@ public class GameData
 		if (newObj != null) newObj.transform.SetParent(engineStandLogic2.transform, true);
 
 		bundle.Unload(false);
-		MelonLogger.Msg("Loaded stand successfully !");
+		MelonLogger.Msg("[GameData->LoadEngineStand] Loaded engine stand successfully.");
 	}
 
 	public static IEnumerator GameReady()

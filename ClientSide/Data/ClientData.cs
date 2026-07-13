@@ -175,7 +175,7 @@ public class ClientData
 				if (client.scene == UserData.scene)
 					client.SpawnPlayer();
 			}
-			MelonLogger.Msg("Game is ready.");
+			MelonLogger.Msg("[ClientData->InitializeGameData] Game is ready.");
 		}
 		else
 		{

@@ -1,6 +1,6 @@
 <br/>
 <p align="center">
-  <a href="https://github.com/bellaouzo/CMS2021">
+  <a href="https://github.com/bellaouzo/CMS2021_Enhanced">
     <img src="https://cdn.discordapp.com/icons/1076513862897119232/1150ebb5d3f306736e1a1cd080465b82.webp?size=96" alt="Logo" width="80" height="80">
   </a>
 
@@ -13,7 +13,7 @@
   </p>
 </p>
 
-![License](https://img.shields.io/github/license/bellaouzo/CMS2021)
+![License](https://img.shields.io/github/license/bellaouzo/CMS2021_Enhanced)
 
 ## Table Of Contents
 
@@ -84,7 +84,7 @@ Gameplay sync is largely complete in this fork. The checklist below reflects the
 
 ## Installation
 
-1. Download the latest build from the [Releases](https://github.com/bellaouzo/CMS2021/releases) page (or build from source below)
+1. Download the latest build from the [Releases](https://github.com/bellaouzo/CMS2021_Enhanced/releases) page (or build from source below)
 2. Download and install [MelonLoader](https://melonwiki.xyz/) version **0.5.7**
 3. Extract the mod folder into your game directory
 4. Launch the game

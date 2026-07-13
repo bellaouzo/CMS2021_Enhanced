@@ -209,7 +209,7 @@ public class ClientSend
 		using (var packet = new Packet((int)PacketTypes.newJob))
 		{
 			packet.Write(job);
-			MelonLogger.Msg("newJob packet");
+			MelonLogger.Msg("[ClientSend->JobPacket] Sending new job packet.");
 			SendData(packet);
 		}
 	}
@@ -229,7 +229,7 @@ public class ClientSend
 	{
 		using (var packet = new Packet((int)PacketTypes.selectedJob))
 		{
-			MelonLogger.Msg("SelectedJob packet");
+			MelonLogger.Msg("[ClientSend->SelectedJobPacket] Sending selected job packet.");
 			packet.Write(job);
 			packet.Write(action);
 
@@ -241,7 +241,7 @@ public class ClientSend
 	{
 		using (var packet = new Packet((int)PacketTypes.endJob))
 		{
-			MelonLogger.Msg("EndJobPacket");
+			MelonLogger.Msg("[ClientSend->EndJobPacket] Sending end job packet.");
 			packet.Write(modJob);
 
 			SendData(packet);
@@ -541,6 +541,25 @@ public class ClientSend
 		using (var packet = new Packet((int)PacketTypes.salonCar))
 		{
 			packet.Write(new ModSalonCar(carId, version, slotIndex));
+			SendData(packet);
+		}
+	}
+
+	public static void SceneCarPacket(ModSceneCar data)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarLoad))
+		{
+			packet.Write(data);
+			SendData(packet);
+		}
+	}
+
+	public static void ResyncSceneCars(SceneCarType sceneType)
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.sceneCarLoad);
+			packet.Write(sceneType);
 			SendData(packet);
 		}
 	}
