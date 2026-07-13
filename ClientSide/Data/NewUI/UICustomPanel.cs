@@ -119,6 +119,11 @@ public static class UICustomPanel
 
 	public static void CreateInfoPanel(string msg)
 	{
+		if (UICore.UI_Main == null || UICore.Active_Panel == null)
+		{
+			MelonLogger.Msg($"[UICustomPanel] CreateInfoPanel skipped (UI not ready): {msg}");
+			return;
+		}
 		UIUtils.SwitchPanelButton(UICore.Active_Panel.transform, true);
 		if (UICore.TMP_Info_Window)
 			Object.Destroy(UICore.TMP_Window);

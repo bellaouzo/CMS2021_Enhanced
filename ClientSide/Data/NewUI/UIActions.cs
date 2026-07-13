@@ -82,7 +82,11 @@ public static class UIActions
 		Client.Instance.OnDisconnected += () =>
 		{
 			UICore.ShowPanel(UICore.MP_Main);
-			UICustomPanel.CreateInfoPanel("Failed to connect to server !");
+			if (!string.IsNullOrEmpty(Client.LastDisconnectMessage))
+			{
+				UICustomPanel.CreateInfoPanel(Client.LastDisconnectMessage);
+				Client.LastDisconnectMessage = null;
+			}
 		};
 		Server.Instance.StartServer(ClientData.UserData.selectedNetworkType);
 		SavesManager.LoadSave(SavesManager.ModSaves[save_index]);
