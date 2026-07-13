@@ -18,6 +18,10 @@ public static class UIElements
 	public static Text CreateText(Transform parent, string content, int fontSize = 16, TextAnchor anchor = TextAnchor.MiddleLeft)
 	{
 		var obj = UICore.CreateElement(UICore.templateText, parent);
+		var localize = obj.GetComponentInChildren<TextLocalize>();
+		if (localize != null)
+			Object.Destroy(localize);
+
 		var text = obj.GetComponent<Text>();
 		text.text = content;
 		text.fontSize = fontSize;

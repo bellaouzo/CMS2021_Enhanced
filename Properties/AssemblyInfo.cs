@@ -6,7 +6,7 @@ using MelonLoader;
 // Les informations générales relatives à un assembly dépendent de
 // l'ensemble d'attributs suivant. Changez les valeurs de ces attributs pour modifier les informations
 // associées à un assembly.
-[assembly: MelonInfo(typeof(MainMod), "CMS21-Together", MainMod.ASSEMBLY_MOD_VERSION, "Fozkais")]
+[assembly: MelonInfo(typeof(MainMod), "CMS21-Together", MainMod.ASSEMBLY_MOD_VERSION, MainMod.MOD_AUTHOR)]
 [assembly: VerifyLoaderVersion(0, 5, 7, false)]
 [assembly: MelonAdditionalDependencies("Facepunch.Steamworks.Win64")]
 [assembly: AssemblyTitle("CMS21-Together")]

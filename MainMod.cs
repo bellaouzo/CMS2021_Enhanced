@@ -23,6 +23,7 @@ namespace CMS21Together
 		public const int PORT = 7777;
 		public const string ASSEMBLY_MOD_VERSION = "1.0.1";
 		public const string ASSEMBLY_HOTFIX_VERSION = "";
+		public const string MOD_AUTHOR = "Fozkais | modified by bellaouzo";
 		public const string MOD_VERSION = "Together " + ASSEMBLY_MOD_VERSION + ASSEMBLY_HOTFIX_VERSION;
 		public bool isModInitialized;
 		

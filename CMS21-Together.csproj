@@ -323,7 +323,7 @@
         <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <Target Name="DeployToGame" AfterTargets="Build">
+    <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods\"/>
         <Message Importance="high" Text="Deployed $(TargetFileName) to $(GameDir)\Mods\"/>
     </Target>

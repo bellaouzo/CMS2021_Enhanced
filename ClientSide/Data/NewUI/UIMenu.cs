@@ -1,4 +1,5 @@
-﻿using CMS21Together.Shared;
+﻿using CMS21Together;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -38,6 +39,8 @@ public static class UIMenu
 		imgRect.sizeDelta = new Vector2(40, 40);
 		imgRect.anchoredPosition = new Vector2(-20, 0);
 		multiBtn.GetComponentInChildren<Text>().gameObject.SetActive(false);
+
+		CreateVersionLabel();
 	}
 
 	public static void SetupMultiplayerMenu()
@@ -149,6 +152,36 @@ public static class UIMenu
 		backRect.anchoredPosition = new Vector2(0, 99);
 
 		UICore.MP_Host.SetActive(false);
+	}
+
+	private static void CreateVersionLabel()
+	{
+		var gameVersionObj = GameObject.Find("GameVersion");
+		if (gameVersionObj == null)
+			return;
+
+		var referenceRect = gameVersionObj.GetComponent<RectTransform>();
+		var parent = gameVersionObj.transform.parent;
+
+		var versionText = UIElements.CreateText(
+			parent,
+			$"Together v{MainMod.ASSEMBLY_MOD_VERSION}",
+			13,
+			TextAnchor.MiddleRight);
+		versionText.color = new Color(0.9f, 0.9f, 0.9f, 0.95f);
+		versionText.gameObject.name = "ModVersion";
+
+		var rect = versionText.GetComponent<RectTransform>();
+		rect.anchorMin = referenceRect.anchorMin;
+		rect.anchorMax = referenceRect.anchorMax;
+		rect.pivot = new Vector2(1f, referenceRect.pivot.y);
+		rect.sizeDelta = new Vector2(170f, 20f);
+		rect.anchoredPosition = referenceRect.anchoredPosition + new Vector2(-92f, 0f);
+
+		var canvas = versionText.gameObject.AddComponent<Canvas>();
+		canvas.overrideSorting = true;
+		canvas.sortingOrder = 10;
+		versionText.transform.SetAsLastSibling();
 	}
 
 }

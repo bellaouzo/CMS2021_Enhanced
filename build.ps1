@@ -1,1 +1,1 @@
-dotnet build CMS21-Together.sln -c Release
+dotnet build CMS21-Together.sln -c Release -p:DeployToGame=true
