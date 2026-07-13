@@ -21,8 +21,8 @@ namespace CMS21Together
 		public const int MAX_SAVE_COUNT = 22;
 		public const int MAX_PLAYER = 4;
 		public const int PORT = 7777;
-		public const string ASSEMBLY_MOD_VERSION = "0.4.16" + ASSEMBLY_HOTFIX_VERSION;
-		public const string ASSEMBLY_HOTFIX_VERSION = "hf3";
+		public const string ASSEMBLY_MOD_VERSION = "1.0";
+		public const string ASSEMBLY_HOTFIX_VERSION = "";
 		public const string MOD_VERSION = "Together " + ASSEMBLY_MOD_VERSION + ASSEMBLY_HOTFIX_VERSION;
 		public bool isModInitialized;
 		
