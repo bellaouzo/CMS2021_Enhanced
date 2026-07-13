@@ -99,6 +99,24 @@ public class GameData
 		MelonLogger.Msg("[GameData->Refresh] GameData references refreshed.");
 	}
 
+	private static bool HasEngineStandLogic()
+	{
+		if (Object.FindObjectOfType<EngineStandLogic>() != null)
+			return true;
+
+		var tools = ToolsManager.Get();
+		return tools != null && tools.EngineStandLogic != null;
+	}
+
+	private static bool HasWheelBalancerLogic()
+	{
+		if (Object.FindObjectOfType<WheelBalancerLogic>() != null)
+			return true;
+
+		var tools = ToolsManager.Get();
+		return tools != null && tools.WheelBalancerLogic != null;
+	}
+
 	private static IEnumerator PopulateReferences()
 	{
 		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<FPSInputController>() != null, 30f, "FPSInputController");
@@ -109,13 +127,13 @@ public class GameData
 		if (LoadWait.LastResult != LoadWaitResult.Success)
 			yield break;
 
-		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<EngineStandLogic>() != null, 30f, "EngineStandLogic");
-		if (LoadWait.LastResult != LoadWaitResult.Success)
-			yield break;
+		// Engine stand and wheel balancer are optional upgrades — not present in all saves.
+		// Wait briefly for loading lag but don't fail init if they're absent.
+		yield return LoadWait.WaitForPredicate(HasEngineStandLogic, 5f, "EngineStandLogic");
+		if (LoadWait.LastResult == LoadWaitResult.Disconnected) yield break;
 
-		yield return LoadWait.WaitForPredicate(() => Object.FindObjectOfType<WheelBalancerLogic>() != null, 30f, "WheelBalancerLogic");
-		if (LoadWait.LastResult != LoadWaitResult.Success)
-			yield break;
+		yield return LoadWait.WaitForPredicate(HasWheelBalancerLogic, 5f, "WheelBalancerLogic");
+		if (LoadWait.LastResult == LoadWaitResult.Disconnected) yield break;
 
 		var fps = Object.FindObjectOfType<FPSInputController>();
 		Instance.localPlayer = fps.gameObject;
@@ -126,9 +144,10 @@ public class GameData
 
 		Instance.toolsMoveManager = Object.FindObjectOfType<ToolsMoveManager>();
 		Instance.orderGenerator = Object.FindObjectOfType<OrderGenerator>();
-		Instance.springClampLogic = Object.FindObjectOfType<SpringClampLogic>();
-		Instance.tireChanger = Object.FindObjectOfType<TireChangerLogic>();
-		Instance.wheelBalancer = Object.FindObjectOfType<WheelBalancerLogic>();
+		var toolsManager = ToolsManager.Get();
+		Instance.springClampLogic = Object.FindObjectOfType<SpringClampLogic>() ?? toolsManager?.SpringClampLogic;
+		Instance.tireChanger = Object.FindObjectOfType<TireChangerLogic>() ?? toolsManager?.TireChangerLogic;
+		Instance.wheelBalancer = Object.FindObjectOfType<WheelBalancerLogic>() ?? toolsManager?.WheelBalancerLogic;
 		Instance.welderLogic = Object.FindObjectOfType<WelderLogic>();
 		Instance.paintshopManager = Object.FindObjectOfType<PaintshopManager>();
 
@@ -161,6 +180,13 @@ public class GameData
 				engineStandLogic2 = stand;
 			else
 				engineStandLogic = stand;
+		}
+
+		if (engineStandLogic == null)
+		{
+			var tools = ToolsManager.Get();
+			if (tools?.EngineStandLogic != null)
+				engineStandLogic = tools.EngineStandLogic;
 		}
 	}
 
