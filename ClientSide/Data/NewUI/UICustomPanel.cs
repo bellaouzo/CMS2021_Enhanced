@@ -117,7 +117,7 @@ public static class UICustomPanel
 		backRect.anchoredPosition = new Vector2(0, 10);
 	}
 
-	public static void CreateInfoPanel(string msg)
+	public static void CreateInfoPanel(string msg, string actionLabel = null, Action action = null)
 	{
 		if (UICore.UI_Main == null || UICore.Active_Panel == null)
 		{
@@ -134,7 +134,7 @@ public static class UICustomPanel
 		panelRect.anchorMin = new Vector2(0.5f, 0.5f);
 		panelRect.anchorMax = new Vector2(0.5f, 0.5f);
 		panelRect.pivot = new Vector2(0.5f, 0.5f);
-		panelRect.sizeDelta = new Vector2(400, 200);
+		panelRect.sizeDelta = new Vector2(400, action == null ? 200 : 220);
 		panelRect.anchoredPosition = Vector2.zero;
 
 		var img = UICore.TMP_Info_Window.AddComponent<Image>();
@@ -157,10 +157,21 @@ public static class UICustomPanel
 		txtRect.anchorMin = new Vector2(0.5f, 1f);
 		txtRect.anchorMax = new Vector2(0.5f, 1f);
 		txtRect.pivot = new Vector2(0.5f, 1f);
-		txtRect.sizeDelta = new Vector2(230, 90);
+		txtRect.sizeDelta = new Vector2(360, 90);
 		txtRect.anchoredPosition = new Vector2(0, -50);
 		
 		CreateSplitter(UICore.TMP_Info_Window.transform, new Vector2(0, -140), new(390, 2));
+
+		if (action != null)
+		{
+			var actionBtn = UIElements.CreateButton(UICore.TMP_Info_Window.transform, actionLabel ?? "Open", action);
+			var actionRect = actionBtn.GetComponent<RectTransform>();
+			actionRect.anchorMin = new Vector2(0f, 0f);
+			actionRect.anchorMax = new Vector2(0f, 0f);
+			actionRect.pivot = new Vector2(0f, 0f);
+			actionRect.sizeDelta = new Vector2(160, 44);
+			actionRect.anchoredPosition = new Vector2(10, 5);
+		}
 		
 		var confirmBtn = UIElements.CreateButton(UICore.TMP_Info_Window.transform,
 			"Confirm", (() => { UIUtils.SwitchPanelButton(UICore.Active_Panel.transform, false); Object.Destroy(UICore.TMP_Info_Window); }));
@@ -169,7 +180,7 @@ public static class UICustomPanel
 		confirmRect.anchorMax = new Vector2(1f, 0f);
 		confirmRect.pivot = new Vector2(1f, 0f);
 		confirmRect.sizeDelta = new Vector2(133, 44);
-		confirmRect.anchoredPosition = new Vector2(-130, 5);
+		confirmRect.anchoredPosition = new Vector2(-10, 5);
 		
 		MelonLogger.Msg("Notice : " + msg); 
 	}

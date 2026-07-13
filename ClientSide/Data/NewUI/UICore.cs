@@ -72,10 +72,17 @@ public static class UICore
 		yield return new WaitForEndOfFrame();
 		yield return new WaitForSeconds(1);
 
-		switch (ContentManager.Instance.IsNewVersionAvailable(MainMod.ASSEMBLY_MOD_VERSION))
+		var versionCheck = ContentManager.Instance.CheckForUpdate(MainMod.ASSEMBLY_MOD_VERSION);
+		switch (versionCheck.Status)
 		{
 			case VersionStatus.Outdated:
-				UICustomPanel.CreateInfoPanel("A new version of the mod is available !");
+				string message = string.IsNullOrEmpty(versionCheck.RemoteVersion)
+					? "A new version of the mod is available!"
+					: $"A new version of the mod is available! (v{versionCheck.RemoteVersion})";
+				UICustomPanel.CreateInfoPanel(
+					message,
+					"View Release",
+					() => Application.OpenURL(versionCheck.ReleaseUrl ?? ContentManager.LatestReleaseUrl));
 				update_notice = true;
 				break;
 			case VersionStatus.Latest:

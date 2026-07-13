@@ -177,6 +177,7 @@
         <Compile Include="Shared\Data\Vanilla\ModStats.cs" />
         <Compile Include="Shared\Data\Vector3Serializable.cs" />
         <Compile Include="Shared\Data\VersionStatus.cs" />
+        <Compile Include="Shared\Data\VersionCheckResult.cs" />
         <Compile Include="Shared\LoadWait.cs" />
         <Compile Include="Shared\SceneManager.cs" />
         <Compile Include="Shared\Packet.cs" />
