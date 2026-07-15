@@ -189,6 +189,21 @@ public static class ServerResyncs
 		else if (sceneType == SceneCarType.Junkyard && ServerData.Instance.junkyardLayoutSeed.HasValue)
 			ServerSend.SceneLayoutSeedPacket(fromClient, SceneCarType.Junkyard, ServerData.Instance.junkyardLayoutSeed.Value, resync: true);
 
+		// Tell peers which slots were already bought so they don't respawn them.
+		var purchased = sceneType == SceneCarType.Barn ? ServerData.Instance.barnPurchasedSlots
+			: sceneType == SceneCarType.Junkyard ? ServerData.Instance.junkyardPurchasedSlots
+			: null;
+		if (purchased != null)
+		{
+			foreach (int slot in purchased)
+			{
+				ServerSend.SceneCarPacket(fromClient, new ModSceneCar(sceneType, slot, string.Empty, 0)
+				{
+					purchased = true,
+				}, resync: true);
+			}
+		}
+
 		var catalog = sceneType switch
 		{
 			SceneCarType.Auction => ServerData.Instance.auctionCatalog,
