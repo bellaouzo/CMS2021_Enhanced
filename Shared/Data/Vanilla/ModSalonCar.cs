@@ -8,6 +8,8 @@ public class ModSalonCar
 	public string carId;
 	public int version;
 	public int slotIndex = -1;
+	public ModColor color;
+	public bool purchased;
 
 	public ModSalonCar() { }
 
@@ -18,10 +20,12 @@ public class ModSalonCar
 		this.slotIndex = -1;
 	}
 
-	public ModSalonCar(string carId, int version, int slotIndex)
+	public ModSalonCar(string carId, int version, int slotIndex, ModColor color = null, bool purchased = false)
 	{
 		this.carId = carId;
 		this.version = version;
 		this.slotIndex = slotIndex;
+		this.color = color;
+		this.purchased = purchased;
 	}
 }

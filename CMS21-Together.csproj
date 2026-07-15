@@ -84,6 +84,7 @@
         <Compile Include="ClientSide\Data\Player\CrouchSync.cs" />
         <Compile Include="ClientSide\Data\Salon\SalonSyncLogic.cs" />
         <Compile Include="ClientSide\Data\Scene\SceneCarSyncLogic.cs" />
+        <Compile Include="ClientSide\Data\CarAppearanceHelper.cs" />
         <Compile Include="ClientSide\Data\Player\InfoBillboard.cs" />
         <Compile Include="ClientSide\Data\Player\CarEnterExit.cs" />
         <Compile Include="ClientSide\Data\Player\Inventory.cs" />
@@ -161,6 +162,7 @@
         <Compile Include="Shared\Data\Vanilla\ModDoorState.cs" />
         <Compile Include="Shared\Data\Vanilla\ModSalonCar.cs" />
         <Compile Include="Shared\Data\Vanilla\ModSceneCar.cs" />
+        <Compile Include="Shared\Data\Vanilla\ModSceneCarPart.cs" />
         <Compile Include="Shared\Data\Vanilla\ModGarageLook.cs" />
         <Compile Include="Shared\Data\Vanilla\ModDifficultyLevel.cs" />
         <Compile Include="Shared\Data\Vanilla\ModGroupItem.cs" />

@@ -250,7 +250,9 @@ public class Server
 			{ (int)PacketTypes.headlampAlignment, ServerHandle.HeadlampAlignmentPacket },
 			{ (int)PacketTypes.garageCustomization, ServerHandle.GarageCustomizationPacket },
 			{ (int)PacketTypes.doorState, ServerHandle.DoorStatePacket },
-			{ (int)PacketTypes.salonCar, ServerHandle.SalonCarPacket }
+			{ (int)PacketTypes.salonCar, ServerHandle.SalonCarPacket },
+			{ (int)PacketTypes.sceneCarLoad, ServerHandle.SceneCarPacket },
+			{ (int)PacketTypes.sceneCarPart, ServerHandle.SceneCarPartPacket }
 		};
 	}
 }

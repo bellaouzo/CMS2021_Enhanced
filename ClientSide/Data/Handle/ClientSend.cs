@@ -536,11 +536,11 @@ public class ClientSend
 		}
 	}
 
-	public static void SalonCarPacket(string carId, int version, int slotIndex = -1)
+	public static void SalonCarPacket(string carId, int version, int slotIndex = -1, ModColor color = null, bool purchased = false)
 	{
 		using (var packet = new Packet((int)PacketTypes.salonCar))
 		{
-			packet.Write(new ModSalonCar(carId, version, slotIndex));
+			packet.Write(new ModSalonCar(carId, version, slotIndex, color, purchased));
 			SendData(packet);
 		}
 	}
@@ -548,6 +548,15 @@ public class ClientSend
 	public static void SceneCarPacket(ModSceneCar data)
 	{
 		using (var packet = new Packet((int)PacketTypes.sceneCarLoad))
+		{
+			packet.Write(data);
+			SendData(packet);
+		}
+	}
+
+	public static void SceneCarPartPacket(ModSceneCarPart data)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarPart))
 		{
 			packet.Write(data);
 			SendData(packet);

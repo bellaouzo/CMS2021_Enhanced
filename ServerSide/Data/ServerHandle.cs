@@ -581,7 +581,12 @@ public static class ServerHandle
 	{
 		var data = packet.Read<ModSalonCar>();
 		if (data.slotIndex >= 0)
-			ServerData.Instance.salonCatalog[data.slotIndex] = data;
+		{
+			if (data.purchased)
+				ServerData.Instance.salonCatalog.Remove(data.slotIndex);
+			else
+				ServerData.Instance.salonCatalog[data.slotIndex] = data;
+		}
 		else
 			ServerData.Instance.salonCar = data;
 		ServerSend.SalonCarPacket(fromClient, data);
@@ -597,6 +602,12 @@ public static class ServerHandle
 			case SceneCarType.Junkyard: ServerData.Instance.junkyardCatalog[data.slotIndex] = data; break;
 		}
 		ServerSend.SceneCarPacket(fromClient, data);
+	}
+
+	public static void SceneCarPartPacket(int fromClient, Packet packet)
+	{
+		var data = packet.Read<ModSceneCarPart>();
+		ServerSend.SceneCarPartPacket(fromClient, data);
 	}
 
 	public static void GarageCustomizationPacket(int fromClient, Packet packet)

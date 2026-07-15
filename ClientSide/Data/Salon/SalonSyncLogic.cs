@@ -36,10 +36,6 @@ public static class SalonSyncLogic
 			MelonCoroutines.Start(ProcessSalonQueue());
 	}
 
-	// Called by SceneManager when the host enters Auto_salon.
-	// SalonManager.LoadCar is an IEnumerator invoked from within LoadCars.MoveNext() at the IL2CPP
-	// native level, so Harmony patches on it are silently bypassed. Instead we poll carLoaders
-	// directly after the scene finishes loading.
 	public static IEnumerator ScanSalonCatalog()
 	{
 		if (!Client.Instance.isConnected || !Server.Instance.isRunning) yield break;
@@ -47,7 +43,6 @@ public static class SalonSyncLogic
 		yield return LoadWait.WaitForComponent<SalonManager>(30f);
 		if (LoadWait.LastResult != LoadWaitResult.Success) yield break;
 
-		// Wait until all non-null carLoaders report IsCarLoaded (or timeout — proceed with whatever loaded).
 		yield return LoadWait.WaitForPredicate(() =>
 		{
 			var sm = SalonManager.instance;
@@ -70,12 +65,32 @@ public static class SalonSyncLogic
 			if (loader == null || !loader.IsCarLoaded()) continue;
 			if (string.IsNullOrEmpty(loader.carToLoad)) continue;
 
-			ClientSend.SalonCarPacket(loader.carToLoad, loader.ConfigVersion, i);
+			var color = CarAppearanceHelper.CaptureColor(loader);
+			ClientSend.SalonCarPacket(loader.carToLoad, loader.ConfigVersion, i, color);
 			MelonLogger.Msg($"[SalonSyncLogic] Sent catalog slot {i}: {loader.carToLoad} v{loader.ConfigVersion}");
 		}
 	}
 
-	// Fires when the host switches which car is shown in the configurator detail view.
+	[HarmonyPatch(typeof(GameScript), nameof(GameScript.BuyCar), typeof(CarLoader), typeof(int))]
+	[HarmonyPostfix]
+	public static void BuyCarHook(CarLoader carLoader)
+	{
+		if (!Client.Instance.isConnected || !listen) return;
+		if (SceneManager.CurrentScene() != GameScene.auto_salon) return;
+		if (carLoader == null) return;
+
+		var sm = SalonManager.instance;
+		if (sm?.carLoaders == null) return;
+
+		for (int i = 0; i < sm.carLoaders.Length; i++)
+		{
+			if (sm.carLoaders[i] != carLoader) continue;
+			ClientSend.SalonCarPacket(carLoader.carToLoad, carLoader.ConfigVersion, i, null, purchased: true);
+			MelonLogger.Msg($"[SalonSyncLogic] Car {carLoader.carToLoad} purchased from slot {i}, broadcasting removal.");
+			return;
+		}
+	}
+
 	[HarmonyPatch(typeof(Configurator), nameof(Configurator.LoadCar))]
 	[HarmonyPostfix]
 	public static void LoadCarHook(string carToLoad, int version)
@@ -86,7 +101,55 @@ public static class SalonSyncLogic
 		if (SceneManager.CurrentScene() != GameScene.auto_salon)
 			return;
 
-		ClientSend.SalonCarPacket(carToLoad, version);
+		MelonCoroutines.Start(SendConfiguratorCar(carToLoad, version));
+	}
+
+	[HarmonyPatch(typeof(Configurator), nameof(Configurator.SetCarColor))]
+	[HarmonyPostfix]
+	public static void SetCarColorHook(Color32 color)
+	{
+		if (!Client.Instance.isConnected || !listen)
+			return;
+
+		if (SceneManager.CurrentScene() != GameScene.auto_salon)
+			return;
+
+		var configurator = Object.FindObjectOfType<Configurator>();
+		if (configurator == null || !configurator.CarIsLoaded) return;
+
+		var loader = GetConfiguratorLoader(configurator);
+		if (loader == null || string.IsNullOrEmpty(loader.carToLoad)) return;
+
+		ClientSend.SalonCarPacket(
+			loader.carToLoad,
+			loader.ConfigVersion,
+			-1,
+			new ModColor(new Color(color.r / 255f, color.g / 255f, color.b / 255f, color.a / 255f)));
+	}
+
+	private static CarLoader GetConfiguratorLoader(Configurator configurator)
+	{
+		if (configurator == null) return null;
+		var customCar = configurator.CustomCar ?? configurator.customCar;
+		return customCar?.CarLoader ?? customCar?.carLoader;
+	}
+
+	private static IEnumerator SendConfiguratorCar(string carToLoad, int version)
+	{
+		yield return LoadWait.WaitForComponent<Configurator>(10f);
+		if (LoadWait.LastResult != LoadWaitResult.Success) yield break;
+
+		var configurator = Object.FindObjectOfType<Configurator>();
+		if (configurator == null) yield break;
+
+		yield return LoadWait.WaitForPredicate(
+			() => configurator != null && configurator.CarIsLoaded,
+			20f,
+			"configurator car load");
+		if (LoadWait.LastResult != LoadWaitResult.Success) yield break;
+
+		var color = CarAppearanceHelper.CaptureColor(GetConfiguratorLoader(configurator));
+		ClientSend.SalonCarPacket(carToLoad, version, -1, color);
 	}
 
 	private static IEnumerator ProcessSalonQueue()
@@ -105,8 +168,26 @@ public static class SalonSyncLogic
 
 			if (data.slotIndex >= 0)
 			{
-				// Catalog slot: wait for SalonManager and for the local car to finish loading
-				// in that slot (avoids racing with the remote's own SalonManager.Generate()).
+				if (data.purchased)
+				{
+					yield return LoadWait.WaitForScene(GameScene.auto_salon);
+					if (LoadWait.LastResult != LoadWaitResult.Success) break;
+
+					var smP = SalonManager.instance;
+					if (smP?.carLoaders != null && data.slotIndex < smP.carLoaders.Length)
+					{
+						var cl = smP.carLoaders[data.slotIndex];
+						if (cl != null)
+						{
+							listen = false;
+							cl.gameObject.SetActive(false);
+							listen = true;
+							MelonLogger.Msg($"[SalonSyncLogic] Hid purchased salon slot {data.slotIndex}.");
+						}
+					}
+					continue;
+				}
+
 				yield return LoadWait.WaitForComponent<SalonManager>(30f);
 				if (LoadWait.LastResult != LoadWaitResult.Success)
 					continue;
@@ -135,16 +216,24 @@ public static class SalonSyncLogic
 				if (carLoader == null)
 					continue;
 
-				var randomCar = new CarsIdWithConfig { CarID = data.carId, ConfigVersion = data.version };
+				bool needsReload = carLoader.carToLoad != data.carId
+				                   || carLoader.ConfigVersion != data.version;
 
-				listen = false;
-				MainMod.StartCoroutine(sm2.LoadCar(carLoader, randomCar));
-				listen = true;
+				if (needsReload)
+				{
+					var randomCar = new CarsIdWithConfig { CarID = data.carId, ConfigVersion = data.version };
+					listen = false;
+					MainMod.StartCoroutine(sm2.LoadCar(carLoader, randomCar));
+					listen = true;
+				}
+
+				if (data.color != null)
+					yield return CarAppearanceHelper.ApplyColorAfterLoad(carLoader, data.color);
+
 				MelonLogger.Msg($"[SalonSyncLogic] Applied catalog slot {slot}: {data.carId} v{data.version}");
 			}
 			else
 			{
-				// Configurator view sync.
 				yield return LoadWait.WaitForComponent<Configurator>(30f);
 				if (LoadWait.LastResult != LoadWaitResult.Success)
 					continue;
@@ -153,9 +242,44 @@ public static class SalonSyncLogic
 				if (configurator == null)
 					continue;
 
-				listen = false;
-				configurator.LoadCar(data.carId, data.version);
-				listen = true;
+				var currentLoader = GetConfiguratorLoader(configurator);
+				bool needsReload = currentLoader == null
+				                   || currentLoader.carToLoad != data.carId
+				                   || currentLoader.ConfigVersion != data.version;
+
+				if (needsReload)
+				{
+					listen = false;
+					configurator.LoadCar(data.carId, data.version);
+					listen = true;
+
+					yield return LoadWait.WaitForPredicate(
+						() => configurator != null && configurator.CarIsLoaded,
+						20f,
+						"configurator remote load");
+				}
+
+				if (data.color != null)
+				{
+					var loader = GetConfiguratorLoader(configurator);
+					if (loader != null)
+						CarAppearanceHelper.ApplyColor(loader, data.color);
+
+					listen = false;
+					try
+					{
+						var c = data.color.ToGame();
+						configurator.SetCarColor(new Color32(
+							(byte)Mathf.Clamp(Mathf.RoundToInt(c.r * 255f), 0, 255),
+							(byte)Mathf.Clamp(Mathf.RoundToInt(c.g * 255f), 0, 255),
+							(byte)Mathf.Clamp(Mathf.RoundToInt(c.b * 255f), 0, 255),
+							(byte)Mathf.Clamp(Mathf.RoundToInt(c.a * 255f), 0, 255)));
+					}
+					finally
+					{
+						listen = true;
+					}
+				}
 			}
 		}
 

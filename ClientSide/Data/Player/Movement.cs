@@ -1,7 +1,6 @@
 ﻿using CMS21Together.ClientSide.Data.Handle;
 using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
-using MelonLoader;
 using UnityEngine;
 
 namespace CMS21Together.ClientSide.Data.Player;
@@ -9,9 +8,11 @@ namespace CMS21Together.ClientSide.Data.Player;
 public static class Movement
 {
 	private static readonly float minDistance = 0.01f;
+	private static readonly float snapDistance = 1.25f;
 	private static readonly float crouchHeightOffset = 0.35f;
 	private static readonly float crouchScaleY = 0.72f;
 	private static readonly float normalScaleY = 1f;
+	private static readonly float playerYOffset = 0.72f;
 	private static Vector3 lastPosition;
 	private static bool lastSentCrouch;
 
@@ -35,7 +36,11 @@ public static class Movement
 		if (!player.isInCar && player.userObject != null && !player.userObject.activeSelf)
 			player.userObject.SetActive(true);
 
-		if (player.userObject == null) player.SpawnPlayer();
+		if (player.userObject == null)
+		{
+			player.position = position;
+			player.SpawnPlayer();
+		}
 
 		if (player.userObject)
 		{
@@ -49,7 +54,10 @@ public static class Movement
 			scale.y = Mathf.Lerp(scale.y, player.baseScaleY * targetScaleY, Time.deltaTime * 12f);
 			player.userObject.transform.localScale = scale;
 
-			if (player.lastPosition != null)
+			float dist = Vector3.Distance(curPos, targetPos);
+			bool shouldSnap = player.lastPosition == null || dist > snapDistance;
+
+			if (!shouldSnap)
 			{
 				var direction = (targetPos - player.lastPosition.toVector3()).normalized;
 				var speed = (targetPos - player.lastPosition.toVector3()).magnitude / Time.deltaTime;
@@ -57,12 +65,16 @@ public static class Movement
 
 				UpdateAnimations(player.userAnimator, direction, speed);
 				player.lastUpdateTime = Time.time;
-				player.userObject.transform.position = Vector3.Lerp(curPos, targetPos, Time.deltaTime * 15f);
+				player.userObject.transform.position = Vector3.Lerp(curPos, targetPos, Time.deltaTime * 18f);
 			}
 			else
+			{
 				player.userObject.transform.position = targetPos;
+				player.lastUpdateTime = Time.time;
+			}
 
 			player.lastPosition = position;
+			player.position = position;
 		}
 	}
 
@@ -95,8 +107,6 @@ public static class Movement
 		{
 			if (client == null || client.userObject == null) continue;
 
-			// Always lerp the crouch scale so it completes smoothly every frame,
-			// not only when position packets arrive.
 			float targetScaleY = client.isCrouching ? crouchScaleY : normalScaleY;
 			float desiredY = client.baseScaleY * targetScaleY;
 			var scale = client.userObject.transform.localScale;
@@ -113,10 +123,6 @@ public static class Movement
 			{
 				client.userAnimator.SetFloat("Vertical", Mathf.Lerp(client.userAnimator.GetFloat("Vertical"), 0, Time.deltaTime * 10f));
 				client.userAnimator.SetFloat("Horizontal", Mathf.Lerp(client.userAnimator.GetFloat("Horizontal"), 0, Time.deltaTime * 10f));
-
-				var currentRotation = client.userObject.transform.rotation;
-				var targetRotation = client.userObject.transform.rotation;
-				client.userObject.transform.rotation = Quaternion.Slerp(currentRotation, targetRotation, Time.deltaTime * 5f);
 			}
 		}
 	}
@@ -127,7 +133,7 @@ public static class Movement
 
 		bool isCrouching = FPSCamera.isCrouching;
 		var position = GameData.Instance.localPlayer.transform.position;
-		position.y -= 0.72f;
+		position.y -= playerYOffset;
 
 		bool moved = Vector3.Distance(position, lastPosition) > minDistance;
 		bool crouchChanged = isCrouching != lastSentCrouch;

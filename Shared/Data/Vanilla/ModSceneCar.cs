@@ -2,7 +2,7 @@ using System;
 
 namespace CMS21Together.Shared.Data.Vanilla;
 
-public enum SceneCarType { Auction = 0, Barn = 1, Junkyard = 2 }
+public enum SceneCarType { Auction = 0, Barn = 1, Junkyard = 2, Salon = 3 }
 
 [Serializable]
 public class ModSceneCar
@@ -11,6 +11,7 @@ public class ModSceneCar
     public int slotIndex;
     public string carId;
     public int version;
+    public ModColor color;
 
     // Auction-specific fields
     public int rating;
@@ -21,11 +22,12 @@ public class ModSceneCar
 
     public ModSceneCar() { }
 
-    public ModSceneCar(SceneCarType sceneType, int slotIndex, string carId, int version)
+    public ModSceneCar(SceneCarType sceneType, int slotIndex, string carId, int version, ModColor color = null)
     {
         this.sceneType = sceneType;
         this.slotIndex = slotIndex;
         this.carId = carId;
         this.version = version;
+        this.color = color;
     }
 }

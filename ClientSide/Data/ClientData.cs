@@ -70,7 +70,9 @@ public class ClientData
 	}
 
 	private static float lastCarCheckTime = 0f;
-	private static readonly float carCheckInterval = 0.5f; // Check every 0.5 seconds
+	private static readonly float carCheckInterval = 0.5f;
+	private static GameScene lastForcedPosScene = GameScene.unknow;
+	private static float forcePosUntil;
 
 	public void UpdateClient()
 	{
@@ -83,8 +85,6 @@ public class ClientData
 		if (!SceneManager.IsPlayerSyncScene())
 			return;
 
-		// In non-garage player-sync scenes (salon, barn, junkyard) the garage-set localPlayer
-		// reference is destroyed. Refresh it from the scene's FPSInputController.
 		if (SceneManager.CurrentScene() != GameScene.garage
 		    && GameData.Instance != null
 		    && (GameData.Instance.localPlayer == null || !GameData.Instance.localPlayer.activeInHierarchy))
@@ -101,9 +101,17 @@ public class ClientData
 		if (!canSync)
 			return;
 
-		Movement.SendPosition();
+		var currentScene = SceneManager.CurrentScene();
+		if (currentScene != lastForcedPosScene)
+		{
+			lastForcedPosScene = currentScene;
+			forcePosUntil = Time.time + 1.5f;
+		}
+
+		bool forcePos = Time.time < forcePosUntil;
+		Movement.SendPosition(forcePos);
 		Movement.CheckForInactivity();
-		Rotation.SendRotation();
+		Rotation.SendRotation(forcePos);
 
 		if (SceneManager.CurrentScene() == GameScene.garage && Time.time - lastCarCheckTime >= carCheckInterval)
 		{

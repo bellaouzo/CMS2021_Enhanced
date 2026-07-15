@@ -25,24 +25,19 @@ public static class Rotation
 		}
 		else
 		{
-			// Business Logic: Store rotation and spawn player if not already spawned
 			player.rotation = rotation;
-			if (player.userObject == null)
-			{
-				player.SpawnPlayer();
-			}
 		}
 	}
 
-	public static void SendRotation()
+	public static void SendRotation(bool force = false)
 	{
-		if (GameData.Instance.localPlayer == null) return;
+		if (GameData.Instance?.localPlayer == null) return;
 
 		var rotation = GameData.Instance.localPlayer.transform.rotation;
-		if (Quaternion.Angle(rotation, lastRotation) > minDistance)
-		{
-			lastRotation = rotation;
-			ClientSend.RotationPacket(new QuaternionSerializable(rotation));
-		}
+		if (!force && Quaternion.Angle(rotation, lastRotation) <= minDistance)
+			return;
+
+		lastRotation = rotation;
+		ClientSend.RotationPacket(new QuaternionSerializable(rotation));
 	}
 }

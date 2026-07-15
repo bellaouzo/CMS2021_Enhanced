@@ -106,10 +106,13 @@ public static class Inventory
 	[HarmonyPrefix]
 	public static void AddGroupItemHook(GroupItem group)
 	{
-		if (!Client.Instance.isConnected) {return;}
-		if (modGroupItems.Any(i => i.UID == group.UID)) return;
+		if (!Client.Instance.isConnected) return;
+		if (group == null) return;
+		long uid;
+		try { uid = group.UID; } catch { return; }
+		if (uid == 0) return;
+		if (modGroupItems.Any(i => i.UID == uid)) return;
 
-		//MelonLogger.Msg($"Add new group item with UID: {group.UID}.");
 		var newItem = new ModGroupItem(group);
 		modGroupItems.Add(newItem);
 		ClientSend.GroupItemPacket(newItem, InventoryAction.add);
@@ -177,11 +180,11 @@ public static class Inventory
 		int loadedGroups = 0;
 		foreach (var group in inventoryData.groups)
 		{
-			if (group != null)
+			if (group == null) continue;
+			try
 			{
 				var newItem = new ModGroupItem(group);
-				
-				// Business Rule: Check if group item already exists to prevent duplication during load
+				if (newItem.UID == 0) continue;
 				if (!modGroupItems.Any(i => i.UID == newItem.UID))
 				{
 					modGroupItems.Add(newItem);
@@ -192,6 +195,10 @@ public static class Inventory
 				{
 					MelonLogger.Msg($"[Inventory->LoadHook] Group item with UID {newItem.UID} already exists, skipping load.");
 				}
+			}
+			catch (Exception ex)
+			{
+				MelonLogger.Warning($"[Inventory->LoadHook] Skipped invalid group item: {ex.Message}");
 			}
 		}
 

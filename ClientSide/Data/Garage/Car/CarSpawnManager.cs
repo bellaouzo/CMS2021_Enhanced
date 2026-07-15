@@ -117,7 +117,8 @@ public static class CarSpawnManager
 			yield break;
 		}
 
-		MelonCoroutines.Start(PartsReferencer.GetPartReferences(ClientData.Instance.loadedCars[carLoaderID]));
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var readyCar))
+			MelonCoroutines.Start(PartsReferencer.GetPartReferences(readyCar));
 		MelonLogger.Msg($"[CarSpawnManager->LoadCarFromServer] Loading {data.carToLoad} from server...");
 	}
 }

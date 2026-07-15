@@ -439,6 +439,15 @@ public static class ServerSend
 		}
 	}
 
+	public static void SceneCarPartPacket(int fromClient, ModSceneCarPart data)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarPart))
+		{
+			packet.Write(data);
+			SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void SendOilBin(int fromClient, int carLoaderID)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.oilBinUse))

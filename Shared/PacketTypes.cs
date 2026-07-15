@@ -62,5 +62,6 @@ public enum PacketTypes
 	garageCustomization,
 	doorState,
 	salonCar,
-	sceneCarLoad
+	sceneCarLoad,
+	sceneCarPart
 }

@@ -241,7 +241,7 @@ public static class PartsUpdater
 			GameData.Instance.carLoaders[carLoaderID].TakeOnCarPartFromSave(reference.name);
 
 		if (reference.Switched != carPart.switched)
-			GameData.Instance.carLoaders[carLoaderID].SwitchCarPart(reference, false, carPart.switched);
+			MelonCoroutines.Start(AnimatePartSwitch(carLoaderID, reference));
 
 		foreach (var _carPart in carPart.connectedParts)
 		{
@@ -258,8 +258,45 @@ public static class PartsUpdater
 		GameData.Instance.carLoaders[carLoaderID].UpdateCarBodyPart(reference);
 	}
 
+	private static IEnumerator AnimatePartSwitch(int carLoaderID, CarPart reference)
+	{
+		CarSyncHooks.listen = false;
+		PartUpdateHooks.listen = false;
+		try
+		{
+			var loader = GameData.Instance.carLoaders[carLoaderID];
+			if (loader == null || reference == null) yield break;
+
+			var routine = loader.SwitchCarPart(reference, false);
+			if (routine == null) yield break;
+
+			while (routine.MoveNext())
+				yield return routine.Current;
+		}
+		finally
+		{
+			CarSyncHooks.listen = true;
+			PartUpdateHooks.listen = true;
+		}
+	}
+
 	public static IEnumerator UpdateFluid(ModFluidData fluid, int carLoaderID)
 	{
+		if (SceneManager.CurrentScene() != GameScene.garage)
+			yield break;
+
+		if (fluid?.CarFluid == null)
+			yield break;
+
+		if (GameData.Instance?.carLoaders == null
+		    || carLoaderID < 0
+		    || carLoaderID >= GameData.Instance.carLoaders.Length)
+			yield break;
+
+		var loader = GameData.Instance.carLoaders[carLoaderID];
+		if (loader == null || !loader.IsCarLoaded())
+			yield break;
+
 		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out _))
 		{
 			yield return WaitForCarReadyOrResync(carLoaderID);
@@ -269,7 +306,17 @@ public static class PartsUpdater
 		yield return new WaitForEndOfFrame();
 
 		PartUpdateHooks.listen = false;
-		GameData.Instance.carLoaders[carLoaderID].FluidsData
-			.SetLevelAndCondition(fluid.Level, fluid.Condition, (CarFluidType)fluid.CarFluid.FluidType);
+		try
+		{
+			loader.FluidsData.SetLevelAndCondition(
+				fluid.Level,
+				fluid.Condition,
+				(CarFluidType)fluid.CarFluid.FluidType,
+				fluid.CarFluid.ID);
+		}
+		finally
+		{
+			PartUpdateHooks.listen = true;
+		}
 	}
 }

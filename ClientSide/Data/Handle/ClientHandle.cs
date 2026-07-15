@@ -299,6 +299,12 @@ public static class ClientHandle
 		Scene.SceneCarSyncLogic.QueueSceneCar(data);
 	}
 
+	public static void SceneCarPartPacket(Packet _packet)
+	{
+		var data = _packet.Read<ModSceneCarPart>();
+		Scene.SceneCarSyncLogic.ApplySceneCarPart(data);
+	}
+
 	public static void CarPaintPacket(Packet _packet)
 	{
 		ModColor color = _packet.Read<ModColor>();
@@ -440,7 +446,10 @@ public static class ClientHandle
 	{
 		var carLoaderID = packet.ReadInt();
 		ModFluidData fluid = packet.Read<ModFluidData>();
-		
+
+		if (SceneManager.CurrentScene() != GameScene.garage)
+			return;
+
 		MelonCoroutines.Start(PartsUpdater.UpdateFluid(fluid, carLoaderID));
 	}
 	
@@ -467,14 +476,14 @@ public static class ClientHandle
 		ClientData.Instance.connectedClients[id].scene = scene;
 		if (scene != SceneManager.CurrentScene())
 		{
-			// Business Logic: Destroy player when changing to different scene
 			ClientData.Instance.connectedClients[id].DestroyPlayer();
 		}
-		else if (ClientData.Instance.connectedClients[id].userObject == null)
+		else
 		{
-			ClientData.Instance.connectedClients[id].SpawnPlayer();
-			if (ClientData.Instance.connectedClients[id].userObject == null
-			    && SceneManager.IsPlayerSyncScene(scene))
+			var player = ClientData.Instance.connectedClients[id];
+			player.DestroyPlayer();
+			player.lastPosition = null;
+			if (SceneManager.IsPlayerSyncScene(scene))
 				MelonCoroutines.Start(RetrySpawnPlayer(id));
 		}
 	}
@@ -487,7 +496,9 @@ public static class ClientHandle
 			if (!ClientData.Instance.connectedClients.ContainsKey(id)) yield break;
 			var player = ClientData.Instance.connectedClients[id];
 			if (player.userObject != null || player.scene != ClientData.UserData.scene) yield break;
+			if (player.lastPosition == null) continue;
 			if (ClientData.Instance.playerPrefab == null) continue;
+			player.position = player.lastPosition;
 			player.SpawnPlayer();
 			if (player.userObject != null) yield break;
 		}

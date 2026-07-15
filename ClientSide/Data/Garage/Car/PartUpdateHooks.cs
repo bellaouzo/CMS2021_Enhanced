@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using CMS21Together.ClientSide.Data.Garage.Tools;
 using CMS21Together.ClientSide.Data.Handle;
+using CMS21Together.Shared;
 using CMS21Together.Shared.Data;
 using CMS21Together.Shared.Data.Vanilla.Cars;
 using CMS21Together.Shared.Data.Vanilla.GarageTool;
@@ -14,16 +15,24 @@ namespace CMS21Together.ClientSide.Data.Garage.Car;
 public static class PartUpdateHooks
 {
 	public static bool listen = true;
+
+	private static bool CanSyncGarageFluid()
+	{
+		return Client.Instance.isConnected
+		       && listen
+		       && SceneManager.CurrentScene() == GameScene.garage;
+	}
 	
 	[HarmonyPatch(typeof(FluidsData), nameof(FluidsData.SetLevel))]
 	[HarmonyPostfix]
 	public static void SetLevelAltHook(float level, CarFluidType carFluidType, int id, FluidsData __instance)
 	{
-		if (!Client.Instance.isConnected || !listen) {listen = true; return;}
+		if (!CanSyncGarageFluid()) { listen = true; return; }
 
 		if (carFluidType == CarFluidType.EngineOil && __instance.Oil.CarFluid != null)
 		{
 			int carLoaderID = __instance.Oil.CarFluid.GetComponentInParent<CarLoaderOnCar>().CarLoader.gameObject.name[10] - '0' - 1;
+			if (carLoaderID < 0 || carLoaderID >= 5) return;
 			ClientSend.CarFluid(carLoaderID, new ModFluidData(__instance.Oil));
 		}
 
@@ -33,11 +42,12 @@ public static class PartUpdateHooks
 	[HarmonyPostfix]
 	public static void SetLevelHook(float level, FluidData __instance)
 	{
-		if (!Client.Instance.isConnected || !listen) {listen = true; return;}
+		if (!CanSyncGarageFluid()) { listen = true; return; }
 
 		if (__instance != null && __instance.CarFluid != null)
 		{
 			int carLoaderID = __instance.CarFluid.GetComponentInParent<CarLoaderOnCar>().CarLoader.gameObject.name[10] - '0' - 1;
+			if (carLoaderID < 0 || carLoaderID >= 5) return;
 			ClientSend.CarFluid(carLoaderID, new ModFluidData(__instance));
 		}
 
