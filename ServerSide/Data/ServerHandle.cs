@@ -583,9 +583,14 @@ public static class ServerHandle
 		if (data.slotIndex >= 0)
 		{
 			if (data.purchased)
+			{
 				ServerData.Instance.salonCatalog.Remove(data.slotIndex);
-			else
+				ServerData.Instance.salonPurchasedSlots.Add(data.slotIndex);
+			}
+			else if (!ServerData.Instance.salonPurchasedSlots.Contains(data.slotIndex))
+			{
 				ServerData.Instance.salonCatalog[data.slotIndex] = data;
+			}
 		}
 		else
 			ServerData.Instance.salonCar = data;
@@ -595,11 +600,34 @@ public static class ServerHandle
 	public static void SceneCarPacket(int fromClient, Packet packet)
 	{
 		var data = packet.Read<ModSceneCar>();
-		switch (data.sceneType)
+		if (data.purchased)
 		{
-			case SceneCarType.Auction: ServerData.Instance.auctionCatalog[data.slotIndex]  = data; break;
-			case SceneCarType.Barn:    ServerData.Instance.barnCatalog[data.slotIndex]     = data; break;
-			case SceneCarType.Junkyard: ServerData.Instance.junkyardCatalog[data.slotIndex] = data; break;
+			switch (data.sceneType)
+			{
+				case SceneCarType.Barn:
+					ServerData.Instance.barnCatalog.Remove(data.slotIndex);
+					ServerData.Instance.barnPurchasedSlots.Add(data.slotIndex);
+					break;
+				case SceneCarType.Junkyard:
+					ServerData.Instance.junkyardCatalog.Remove(data.slotIndex);
+					ServerData.Instance.junkyardPurchasedSlots.Add(data.slotIndex);
+					break;
+			}
+		}
+		else
+		{
+			switch (data.sceneType)
+			{
+				case SceneCarType.Auction: ServerData.Instance.auctionCatalog[data.slotIndex] = data; break;
+				case SceneCarType.Barn:
+					if (!ServerData.Instance.barnPurchasedSlots.Contains(data.slotIndex))
+						ServerData.Instance.barnCatalog[data.slotIndex] = data;
+					break;
+				case SceneCarType.Junkyard:
+					if (!ServerData.Instance.junkyardPurchasedSlots.Contains(data.slotIndex))
+						ServerData.Instance.junkyardCatalog[data.slotIndex] = data;
+					break;
+			}
 		}
 		ServerSend.SceneCarPacket(fromClient, data);
 	}
@@ -608,6 +636,37 @@ public static class ServerHandle
 	{
 		var data = packet.Read<ModSceneCarPart>();
 		ServerSend.SceneCarPartPacket(fromClient, data);
+	}
+
+	public static void SceneLayoutSeedPacket(int fromClient, Packet packet)
+	{
+		var sceneType = packet.Read<SceneCarType>();
+		var seed = packet.ReadInt();
+		switch (sceneType)
+		{
+			case SceneCarType.Barn: ServerData.Instance.barnLayoutSeed = seed; break;
+			case SceneCarType.Junkyard: ServerData.Instance.junkyardLayoutSeed = seed; break;
+		}
+		ServerSend.SceneLayoutSeedPacket(fromClient, sceneType, seed);
+	}
+
+	public static void SceneCarsReadyPacket(int fromClient, Packet packet)
+	{
+		var sceneType = packet.Read<SceneCarType>();
+		var count = packet.ReadInt();
+		ServerSend.SceneCarsReadyPacket(fromClient, sceneType, count);
+	}
+
+	public static void AuctionSelectPacket(int fromClient, Packet packet)
+	{
+		var data = packet.Read<ModAuctionSelect>();
+		ServerSend.AuctionSelectPacket(fromClient, data);
+	}
+
+	public static void AuctionBidPacket(int fromClient, Packet packet)
+	{
+		var data = packet.Read<ModAuctionBid>();
+		ServerSend.AuctionBidPacket(fromClient, data);
 	}
 
 	public static void GarageCustomizationPacket(int fromClient, Packet packet)
@@ -672,7 +731,10 @@ public static class ServerHandle
 		{
 			case PacketTypes.loadCar:
 				int carLoaderID = packet.ReadInt();
-				ServerResyncs.ResyncCar(fromClient, carLoaderID);
+				if (carLoaderID < 0)
+					ServerResyncs.ResyncAllCars(fromClient);
+				else
+					ServerResyncs.ResyncCar(fromClient, carLoaderID);
 				break;
 			case PacketTypes.parkAdd:
 				ServerResyncs.ResyncPark(fromClient);

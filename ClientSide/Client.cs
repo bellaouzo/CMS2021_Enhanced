@@ -143,7 +143,11 @@ public class Client
 			{ (int)PacketTypes.doorState, ClientHandle.DoorStatePacket },
 			{ (int)PacketTypes.salonCar, ClientHandle.SalonCarPacket },
 			{ (int)PacketTypes.sceneCarLoad, ClientHandle.SceneCarPacket },
-			{ (int)PacketTypes.sceneCarPart, ClientHandle.SceneCarPartPacket }
+			{ (int)PacketTypes.sceneCarPart, ClientHandle.SceneCarPartPacket },
+			{ (int)PacketTypes.sceneLayoutSeed, ClientHandle.SceneLayoutSeedPacket },
+			{ (int)PacketTypes.sceneCarsReady, ClientHandle.SceneCarsReadyPacket },
+			{ (int)PacketTypes.auctionSelect, ClientHandle.AuctionSelectPacket },
+			{ (int)PacketTypes.auctionBid, ClientHandle.AuctionBidPacket }
 		};
 	}
 

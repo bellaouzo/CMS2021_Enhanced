@@ -149,7 +149,11 @@ public class Packet : IDisposable
 
 	public void Write<T>(T value)
 	{
+		if (value == null)
+			throw new ArgumentNullException(nameof(value), "Packet.Write received null.");
 		var array = ObjectToByteArray(value);
+		if (array == null)
+			throw new InvalidOperationException("Packet.Write failed to serialize value.");
 		Write(array.Length);
 		Write(array);
 	}

@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using CMS21Together.Shared;
+using CMS21Together.Shared.Data;
 using MelonLoader;
 using UnityEngine;
 
@@ -8,6 +10,10 @@ public static class CarSyncManager
 {
 	public static IEnumerator ChangePosition(int carLoaderID, int placeNo)
 	{
+		yield return LoadWait.WaitForScene(GameScene.garage);
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
 		while (!ClientData.GameReady)
 			yield return new WaitForSeconds(0.25f);
 		yield return new WaitForEndOfFrame();
@@ -15,7 +21,7 @@ public static class CarSyncManager
 		if (GameData.Instance?.carLoaders == null) yield break;
 		if (carLoaderID < 0 || carLoaderID >= GameData.Instance.carLoaders.Length) yield break;
 		var loader = GameData.Instance.carLoaders[carLoaderID];
-		if (loader == null) yield break;
+		if (loader == null || !loader.IsCarLoaded()) yield break;
 
 		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var car))
 		{
@@ -24,13 +30,22 @@ public static class CarSyncManager
 				MelonLogger.Msg($"Change {car.carID} position to {placeNo}.");
 				car.carPosition = placeNo;
 				CarSyncHooks.listenToChangePosition = false;
-				loader.ChangePosition(placeNo);
+				try { loader.ChangePosition(placeNo); }
+				catch (System.Exception ex)
+				{
+					MelonLogger.Warning($"[CarSyncManager->ChangePosition] Failed: {ex.Message}");
+				}
+				CarSyncHooks.listenToChangePosition = true;
 			}
 		}
 	}
 
 	public static IEnumerator DeleteCar(int carLoaderID)
 	{
+		yield return LoadWait.WaitForScene(GameScene.garage);
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
 		while (!ClientData.GameReady)
 			yield return new WaitForSeconds(0.25f);
 		yield return new WaitForEndOfFrame();
@@ -44,6 +59,11 @@ public static class CarSyncManager
 		if (delLoader == null) yield break;
 
 		CarSpawnHooks.listenToDelete = false;
-		delLoader.DeleteCar();
+		try { delLoader.DeleteCar(); }
+		catch (System.Exception ex)
+		{
+			MelonLogger.Warning($"[CarSyncManager->DeleteCar] Failed: {ex.Message}");
+		}
+		CarSpawnHooks.listenToDelete = true;
 	}
 }

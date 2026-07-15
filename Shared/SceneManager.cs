@@ -39,6 +39,15 @@ public static class SceneManager
 		}
 		else if (newSceneName == "Auto_salon")
 		{
+			// Leaving garage for salon — mark cars so return triggers a full catalog pull.
+			if (ClientData.Instance?.loadedCars != null)
+			{
+				foreach (ModCar loadedCar in ClientData.Instance.loadedCars.Values)
+				{
+					if (loadedCar != null)
+						loadedCar.needResync = true;
+				}
+			}
 			ClientSide.Data.Handle.ClientSend.ResyncSalon();
 			if (Server.Instance != null && Server.Instance.isRunning)
 				MelonCoroutines.Start(CMS21Together.ClientSide.Data.Salon.SalonSyncLogic.ScanSalonCatalog());
@@ -111,6 +120,7 @@ public static class SceneManager
 				CMS21Together.ClientSide.Data.Garage.DoorSyncLogic.Reset();
 				CMS21Together.ClientSide.Data.Salon.SalonSyncLogic.Reset();
 				CMS21Together.ClientSide.Data.Scene.SceneCarSyncLogic.Reset();
+				CMS21Together.ClientSide.Data.Scene.AuctionBidSyncLogic.Reset();
 
 				MelonLogger.Msg("[SceneManager->StopOutdoorOperations] Stopped outdoor operations (car wash, paint).");
 			}
@@ -160,7 +170,7 @@ public static class SceneManager
 			return GameScene.menu;
 
 		if (scene == "SceneLoader") return GameScene.unknow;
-		if (scene == "Auctions") return GameScene.auto_salon;
+		if (scene == "Auctions") return GameScene.auctions;
 
 		// Business Rule: Return unknown for unrecognized scene names
 		MelonLogger.Warning($"[SceneManager->UpdateScene] Unknown scene name: {scene}. Returning unknown.");
@@ -177,6 +187,8 @@ public static class SceneManager
 			return GameScene.junkyard;
 		if (IsInDealer(user))
 			return GameScene.auto_salon;
+		if (IsInAuctions(user))
+			return GameScene.auctions;
 		if (IsInMenu(user))
 			return GameScene.menu;
 
@@ -223,12 +235,21 @@ public static class SceneManager
 		return ClientData.UserData.scene == GameScene.barn;
 	}
 
+	public static bool IsInAuctions(UserData user = null)
+	{
+		if (user != null)
+			return user.scene == GameScene.auctions;
+
+		return ClientData.UserData.scene == GameScene.auctions;
+	}
+
 	public static bool IsPlayerSyncScene(GameScene scene)
 	{
 		return scene == GameScene.garage
 		       || scene == GameScene.auto_salon
 		       || scene == GameScene.barn
-		       || scene == GameScene.junkyard;
+		       || scene == GameScene.junkyard
+		       || scene == GameScene.auctions;
 	}
 
 	public static bool IsPlayerSyncScene()

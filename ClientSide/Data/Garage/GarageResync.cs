@@ -21,17 +21,25 @@ public static class GarageResync
 		for (int i = 0; i < carsToCheck.Count; i++)
 		{
 			ModCar car = carsToCheck[i];
-			if (car.needResync)
+			if (car == null || !car.needResync) continue;
+
+			if (GameData.Instance?.carLoaders != null
+			    && car.carLoaderID >= 0
+			    && car.carLoaderID < GameData.Instance.carLoaders.Length
+			    && GameData.Instance.carLoaders[car.carLoaderID] != null)
 			{
 				CarSpawnHooks.listenToDelete = false;
-				GameData.Instance.carLoaders[car.carLoaderID].DeleteCar();
+				try { GameData.Instance.carLoaders[car.carLoaderID].DeleteCar(); }
+				catch { /* ignore teardown races */ }
+				CarSpawnHooks.listenToDelete = true;
 				yield return new WaitForEndOfFrame();
-				ClientData.Instance.loadedCars.Remove(car.carLoaderID);
-				ClientSend.ResyncCar(car.carLoaderID);
-				MelonLogger.Msg($"Asked resync for {car.carLoaderID} ({car.carID}) to server!");
 			}
+			ClientData.Instance.loadedCars.Remove(car.carLoaderID);
+			MelonLogger.Msg($"Cleared local car {car.carLoaderID} ({car.carID}) for resync.");
 		}
 
+		// Always pull the full garage catalog so salon buys / late joins are not missed.
+		ClientSend.ResyncAllGarageCars();
 	}
 
 	public static IEnumerator ResyncGarage()

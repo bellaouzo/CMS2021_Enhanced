@@ -10,5 +10,6 @@ public enum GameScene
 	junkyard,
 	auto_salon,
 	barn,
-	menu
+	menu,
+	auctions
 }

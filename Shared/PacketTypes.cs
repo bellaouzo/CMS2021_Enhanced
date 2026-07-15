@@ -63,5 +63,9 @@ public enum PacketTypes
 	doorState,
 	salonCar,
 	sceneCarLoad,
-	sceneCarPart
+	sceneCarPart,
+	sceneLayoutSeed,
+	sceneCarsReady,
+	auctionSelect,
+	auctionBid
 }

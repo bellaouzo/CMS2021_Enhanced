@@ -12,12 +12,24 @@ public static class ServerResyncs
 {
 	public static void ResyncCar(int playerID, int carLoaderID)
 	{
-		ModNewCarData carToResync = ServerData.Instance.CarSpawnDatas[carLoaderID];
-		ModCarInfo carInfo = ServerData.Instance.CarPartInfo[carLoaderID];
-		
-		MelonLogger.Msg($"Sent a resync car from: {carLoaderID}  {carToResync.CarInfoData.CarFrom}");
+		if (!ServerData.Instance.CarSpawnDatas.TryGetValue(carLoaderID, out ModNewCarData carToResync)
+		    || carToResync == null)
+		{
+			MelonLogger.Warning($"[ServerResyncs->ResyncCar] No spawn data for loader {carLoaderID}.");
+			return;
+		}
+
+		ServerData.Instance.CarPartInfo.TryGetValue(carLoaderID, out ModCarInfo carInfo);
+
+		MelonLogger.Msg($"Sent a resync car from: {carLoaderID}");
 		
 		ServerSend.LoadCarPacket(playerID, carToResync, carLoaderID, true);
+
+		if (carInfo == null)
+		{
+			MelonLogger.Msg("[ServerResyncs->ResyncCar] Sent spawn only (no part info).");
+			return;
+		}
 
 		foreach (KeyValuePair<int, ModCarPart> partsReference in carInfo.BodyPartsReferences)
 		{
@@ -29,7 +41,6 @@ public static class ServerResyncs
 			foreach (KeyValuePair<int,ModPartScript> modPartScript in partsReference.Value)
 			{
 				ServerSend.PartScriptPacket(playerID, modPartScript.Value, carLoaderID, true);
-				MelonLogger.Msg("Sent part.");
 			}
 		}
 		
@@ -48,10 +59,17 @@ public static class ServerResyncs
 			foreach (KeyValuePair<int,ModPartScript> modPartScript in partsReference.Value)
 			{
 				ServerSend.PartScriptPacket(playerID, modPartScript.Value, carLoaderID, true);
-				MelonLogger.Msg("Sent part.");
 			}
 		}
 		MelonLogger.Msg("[ServerResyncs->ResyncCar] Resent car info to client!");
+	}
+
+	public static void ResyncAllCars(int playerID)
+	{
+		foreach (var kvp in ServerData.Instance.CarSpawnDatas)
+			ResyncCar(playerID, kvp.Key);
+
+		MelonLogger.Msg($"[ServerResyncs] Sent full garage car catalog ({ServerData.Instance.CarSpawnDatas.Count} cars).");
 	}
 	
 	public static void ResyncEngineStand(int fromClient, bool alt)
@@ -133,7 +151,14 @@ public static class ServerResyncs
 		foreach (var kvp in ServerData.Instance.salonCatalog)
 			ServerSend.SalonCarPacket(fromClient, kvp.Value, resync: true);
 
-		MelonLogger.Msg("[ServerResyncs] Sent salon resync.");
+		foreach (int slot in ServerData.Instance.salonPurchasedSlots)
+		{
+			ServerSend.SalonCarPacket(fromClient,
+				new ModSalonCar(string.Empty, 0, slot, null, purchased: true),
+				resync: true);
+		}
+
+		MelonLogger.Msg($"[ServerResyncs] Sent salon resync ({ServerData.Instance.salonCatalog.Count} cars, {ServerData.Instance.salonPurchasedSlots.Count} purchased).");
 	}
 
 	public static void ResyncWheelBalancer(int fromClient)
@@ -159,6 +184,11 @@ public static class ServerResyncs
 
 	public static void ResyncSceneCars(int fromClient, SceneCarType sceneType)
 	{
+		if (sceneType == SceneCarType.Barn && ServerData.Instance.barnLayoutSeed.HasValue)
+			ServerSend.SceneLayoutSeedPacket(fromClient, SceneCarType.Barn, ServerData.Instance.barnLayoutSeed.Value, resync: true);
+		else if (sceneType == SceneCarType.Junkyard && ServerData.Instance.junkyardLayoutSeed.HasValue)
+			ServerSend.SceneLayoutSeedPacket(fromClient, SceneCarType.Junkyard, ServerData.Instance.junkyardLayoutSeed.Value, resync: true);
+
 		var catalog = sceneType switch
 		{
 			SceneCarType.Auction => ServerData.Instance.auctionCatalog,
@@ -167,6 +197,8 @@ public static class ServerResyncs
 		};
 		foreach (var kvp in catalog)
 			ServerSend.SceneCarPacket(fromClient, kvp.Value, resync: true);
+
+		ServerSend.SceneCarsReadyPacket(fromClient, sceneType, catalog.Count, resync: true);
 		MelonLogger.Msg($"[ServerResyncs] Sent {sceneType} catalog resync ({catalog.Count} entries).");
 	}
 }

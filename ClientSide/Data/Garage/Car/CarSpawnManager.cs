@@ -84,6 +84,10 @@ public static class CarSpawnManager
 
 	public static IEnumerator LoadCarFromServer(ModNewCarData data, int carLoaderID)
 	{
+		yield return LoadWait.WaitForScene(GameScene.garage);
+		if (LoadWait.LastResult != LoadWaitResult.Success)
+			yield break;
+
 		yield return LoadWait.WaitForClientGameReady();
 		if (LoadWait.LastResult != LoadWaitResult.Success)
 			yield break;
@@ -94,7 +98,27 @@ public static class CarSpawnManager
 
 		yield return new WaitForEndOfFrame();
 
+		if (GameData.Instance?.carLoaders == null) yield break;
+		if (carLoaderID < 0 || carLoaderID >= GameData.Instance.carLoaders.Length) yield break;
 		var carLoader = GameData.Instance.carLoaders[carLoaderID];
+		if (carLoader == null) yield break;
+
+		// Already have this car loaded — only sync position if needed.
+		if (ClientData.Instance.loadedCars.TryGetValue(carLoaderID, out var existing)
+		    && existing.carID == data.carToLoad
+		    && carLoader.IsCarLoaded())
+		{
+			if (data.carPosition != existing.carPosition)
+			{
+				existing.carPosition = data.carPosition;
+				CarSyncHooks.listenToChangePosition = false;
+				try { carLoader.ChangePosition(data.carPosition); }
+				catch { /* loader may be mid-teardown */ }
+				CarSyncHooks.listenToChangePosition = true;
+			}
+			yield break;
+		}
+
 		carLoader.placeNo = data.carPosition;
 		carLoader.ConfigVersion = data.configVersion;
 		var carData = data.ToGame();
@@ -105,7 +129,7 @@ public static class CarSpawnManager
 		if (data.jobID != -1)
 			carLoader.SetCustomerCar(true, data.jobID);
 		MainMod.StartCoroutine(carLoader.LoadCarFromFile(carData));
-		var car = new ModCar(carLoaderID, data.carToLoad, data.configVersion);
+		var car = new ModCar(carLoaderID, data.carToLoad, data.configVersion, data.carPosition, data.customerCar);
 		ClientData.Instance.loadedCars[carLoaderID] = car;
 
 		yield return LoadWait.WaitForCarLoaded(carLoaderID);

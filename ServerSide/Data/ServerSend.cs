@@ -448,6 +448,46 @@ public static class ServerSend
 		}
 	}
 
+	public static void SceneLayoutSeedPacket(int fromClient, SceneCarType sceneType, int seed, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneLayoutSeed))
+		{
+			packet.Write(sceneType);
+			packet.Write(seed);
+			if (resync) SendData(fromClient, packet);
+			else SendDataToAll(fromClient, packet);
+		}
+	}
+
+	public static void SceneCarsReadyPacket(int fromClient, SceneCarType sceneType, int count, bool resync = false)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarsReady))
+		{
+			packet.Write(sceneType);
+			packet.Write(count);
+			if (resync) SendData(fromClient, packet);
+			else SendDataToAll(fromClient, packet);
+		}
+	}
+
+	public static void AuctionSelectPacket(int fromClient, ModAuctionSelect data)
+	{
+		using (var packet = new Packet((int)PacketTypes.auctionSelect))
+		{
+			packet.Write(data);
+			SendDataToAll(fromClient, packet);
+		}
+	}
+
+	public static void AuctionBidPacket(int fromClient, ModAuctionBid data)
+	{
+		using (var packet = new Packet((int)PacketTypes.auctionBid))
+		{
+			packet.Write(data);
+			SendDataToAll(fromClient, packet);
+		}
+	}
+
 	public static void SendOilBin(int fromClient, int carLoaderID)
 	{
 		using (Packet _packet = new Packet((int)PacketTypes.oilBinUse))

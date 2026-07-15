@@ -66,6 +66,11 @@ public class ClientSend
 
 	public static void ItemPacket(ModItem item, InventoryAction action)
 	{
+		if (item == null || string.IsNullOrEmpty(item.ID))
+		{
+			MelonLogger.Warning("[ClientSend->ItemPacket] Skipping null/invalid item.");
+			return;
+		}
 		using (var packet = new Packet((int)PacketTypes.item))
 		{
 			packet.Write(action);
@@ -413,6 +418,16 @@ public class ClientSend
 			SendData(packet);
 		}
 	}
+
+	public static void ResyncAllGarageCars()
+	{
+		using (var packet = new Packet((int)PacketTypes.resync))
+		{
+			packet.Write(PacketTypes.loadCar);
+			packet.Write(-1); // -1 = full garage catalog
+			SendData(packet);
+		}
+	}
 	
 	public static void ResyncTools()
 	{
@@ -569,6 +584,44 @@ public class ClientSend
 		{
 			packet.Write(PacketTypes.sceneCarLoad);
 			packet.Write(sceneType);
+			SendData(packet);
+		}
+	}
+
+	public static void SceneLayoutSeedPacket(SceneCarType sceneType, int seed)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneLayoutSeed))
+		{
+			packet.Write(sceneType);
+			packet.Write(seed);
+			SendData(packet);
+		}
+	}
+
+	public static void SceneCarsReady(SceneCarType sceneType, int count)
+	{
+		using (var packet = new Packet((int)PacketTypes.sceneCarsReady))
+		{
+			packet.Write(sceneType);
+			packet.Write(count);
+			SendData(packet);
+		}
+	}
+
+	public static void AuctionSelectPacket(ModAuctionSelect data)
+	{
+		using (var packet = new Packet((int)PacketTypes.auctionSelect))
+		{
+			packet.Write(data);
+			SendData(packet);
+		}
+	}
+
+	public static void AuctionBidPacket(ModAuctionBid data)
+	{
+		using (var packet = new Packet((int)PacketTypes.auctionBid))
+		{
+			packet.Write(data);
 			SendData(packet);
 		}
 	}

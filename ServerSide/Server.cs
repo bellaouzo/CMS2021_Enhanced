@@ -252,7 +252,11 @@ public class Server
 			{ (int)PacketTypes.doorState, ServerHandle.DoorStatePacket },
 			{ (int)PacketTypes.salonCar, ServerHandle.SalonCarPacket },
 			{ (int)PacketTypes.sceneCarLoad, ServerHandle.SceneCarPacket },
-			{ (int)PacketTypes.sceneCarPart, ServerHandle.SceneCarPartPacket }
+			{ (int)PacketTypes.sceneCarPart, ServerHandle.SceneCarPartPacket },
+			{ (int)PacketTypes.sceneLayoutSeed, ServerHandle.SceneLayoutSeedPacket },
+			{ (int)PacketTypes.sceneCarsReady, ServerHandle.SceneCarsReadyPacket },
+			{ (int)PacketTypes.auctionSelect, ServerHandle.AuctionSelectPacket },
+			{ (int)PacketTypes.auctionBid, ServerHandle.AuctionBidPacket }
 		};
 	}
 }

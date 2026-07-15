@@ -59,7 +59,9 @@ public class ClientData
 		GarageUpgradeHooks.Reset();
 		Garage.GarageCustomizationLogic.Reset();
 		Garage.DoorSyncLogic.Reset();
-		Salon.SalonSyncLogic.Reset();
+		Salon.SalonSyncLogic.FullReset();
+		Scene.SceneCarSyncLogic.FullReset();
+		Scene.AuctionBidSyncLogic.Reset();
 		Player.CrouchSync.Reset();
 		Garage.Tools.ToolsMoveManager.Reset();
 		Garage.Tools.CarWashLogic.Reset();

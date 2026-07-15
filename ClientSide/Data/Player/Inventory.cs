@@ -178,27 +178,30 @@ public static class Inventory
 
 		// Business Logic: Load group items from save data
 		int loadedGroups = 0;
-		foreach (var group in inventoryData.groups)
+		if (inventoryData.groups != null)
 		{
-			if (group == null) continue;
-			try
+			foreach (var group in inventoryData.groups)
 			{
-				var newItem = new ModGroupItem(group);
-				if (newItem.UID == 0) continue;
-				if (!modGroupItems.Any(i => i.UID == newItem.UID))
+				if (group == null) continue;
+				try
 				{
-					modGroupItems.Add(newItem);
-					ClientSend.GroupItemPacket(newItem, InventoryAction.add);
-					loadedGroups++;
+					var newItem = new ModGroupItem(group);
+					if (newItem.UID == 0) continue;
+					if (!modGroupItems.Any(i => i.UID == newItem.UID))
+					{
+						modGroupItems.Add(newItem);
+						ClientSend.GroupItemPacket(newItem, InventoryAction.add);
+						loadedGroups++;
+					}
+					else
+					{
+						MelonLogger.Msg($"[Inventory->LoadHook] Group item with UID {newItem.UID} already exists, skipping load.");
+					}
 				}
-				else
+				catch (Exception ex)
 				{
-					MelonLogger.Msg($"[Inventory->LoadHook] Group item with UID {newItem.UID} already exists, skipping load.");
+					MelonLogger.Warning($"[Inventory->LoadHook] Skipped invalid group item: {ex.Message}");
 				}
-			}
-			catch (Exception ex)
-			{
-				MelonLogger.Warning($"[Inventory->LoadHook] Skipped invalid group item: {ex.Message}");
 			}
 		}
 
@@ -206,22 +209,33 @@ public static class Inventory
 
 		// Business Logic: Load items from save data
 		int loadedItems = 0;
-		foreach (var item in inventoryData.items)
+		if (inventoryData.items != null)
 		{
-			if (item != null)
+			foreach (var item in inventoryData.items)
 			{
-				var newItem = new ModItem(item);
-				
-				// Business Rule: Check if item already exists to prevent duplication during load
-				if (!modItems.Any(i => i.UID == newItem.UID))
+				if (item == null) continue;
+				try
 				{
-					modItems.Add(newItem);
-					ClientSend.ItemPacket(newItem, InventoryAction.add);
-					loadedItems++;
+					var newItem = new ModItem(item);
+					if (newItem == null || string.IsNullOrEmpty(newItem.ID)) continue;
+					if (!modItems.Any(i => i.UID == newItem.UID))
+					{
+						modItems.Add(newItem);
+						try { ClientSend.ItemPacket(newItem, InventoryAction.add); }
+						catch (Exception sendEx)
+						{
+							MelonLogger.Warning($"[Inventory->LoadHook] ItemPacket failed: {sendEx.Message}");
+						}
+						loadedItems++;
+					}
+					else
+					{
+						MelonLogger.Msg($"[Inventory->LoadHook] Item with UID {newItem.UID} already exists, skipping load.");
+					}
 				}
-				else
+				catch (Exception ex)
 				{
-					MelonLogger.Msg($"[Inventory->LoadHook] Item with UID {newItem.UID} already exists, skipping load.");
+					MelonLogger.Warning($"[Inventory->LoadHook] Skipped invalid item: {ex.Message}");
 				}
 			}
 		}

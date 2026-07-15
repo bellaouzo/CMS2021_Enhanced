@@ -305,6 +305,33 @@ public static class ClientHandle
 		Scene.SceneCarSyncLogic.ApplySceneCarPart(data);
 	}
 
+	public static void SceneLayoutSeedPacket(Packet _packet)
+	{
+		var sceneType = _packet.Read<SceneCarType>();
+		var seed = _packet.ReadInt();
+		Scene.SceneCarSyncLogic.ReceiveLayoutSeed(sceneType, seed);
+	}
+
+	public static void SceneCarsReadyPacket(Packet _packet)
+	{
+		var sceneType = _packet.Read<SceneCarType>();
+		var count = _packet.ReadInt();
+		Scene.SceneCarSyncLogic.ReceiveCarsReady(sceneType, count);
+	}
+
+	public static void AuctionSelectPacket(Packet _packet)
+	{
+		var data = _packet.Read<ModAuctionSelect>();
+		Scene.SceneCarSyncLogic.ApplyAuctionSelect(data);
+	}
+
+	public static void AuctionBidPacket(Packet _packet)
+	{
+		var data = _packet.Read<ModAuctionBid>();
+		MelonLogger.Msg($"[ClientHandle] AuctionBid {data?.action}");
+		Scene.AuctionBidSyncLogic.Apply(data);
+	}
+
 	public static void CarPaintPacket(Packet _packet)
 	{
 		ModColor color = _packet.Read<ModColor>();

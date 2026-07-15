@@ -33,9 +33,14 @@ public class ServerData
 	public Dictionary<string, ModDoorState> doorStates = new();
 	public ModSalonCar salonCar;
 	public Dictionary<int, ModSalonCar> salonCatalog = new();
+	public HashSet<int> salonPurchasedSlots = new();
 	public Dictionary<int, ModSceneCar> auctionCatalog = new();
 	public Dictionary<int, ModSceneCar> barnCatalog = new();
 	public Dictionary<int, ModSceneCar> junkyardCatalog = new();
+	public HashSet<int> barnPurchasedSlots = new();
+	public HashSet<int> junkyardPurchasedSlots = new();
+	public int? barnLayoutSeed;
+	public int? junkyardLayoutSeed;
 	public Dictionary<string, List<bool>> sharedSkills = new();
 	public List<ModGroupItem> groupItems = new();
 	public List<ModItem> items = new();

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using CMS21Together.ClientSide.Data.Handle;
 using CMS21Together.ClientSide.Data.Scene;
 using CMS21Together.Shared.Data.Vanilla;
@@ -15,18 +16,21 @@ public static class CarSyncHooks
 	public static bool listen = true;
 	public static bool listenToChangePosition = true;
 
+	// Debounce duplicate SwitchCarPart overloads: key by part only, send final state once.
+	private static readonly Dictionary<string, object> pendingScenePartSends = new();
+
 	[HarmonyPatch(typeof(CarLoader), nameof(CarLoader.SwitchCarPart), typeof(string))]
 	[HarmonyPostfix]
 	public static void SwitchCarPartNameHook(string name, CarLoader __instance)
 	{
-		QueuePartSwitch(__instance, name);
+		QueueScenePartSwitch(__instance, name);
 	}
 
 	[HarmonyPatch(typeof(CarLoader), nameof(CarLoader.SwitchCarPart), typeof(string), typeof(bool))]
 	[HarmonyPostfix]
 	public static void SwitchCarPartNameInstantHook(string name, bool instant, CarLoader __instance)
 	{
-		QueuePartSwitch(__instance, name);
+		QueueScenePartSwitch(__instance, name);
 	}
 
 	[HarmonyPatch(typeof(CarLoader), nameof(CarLoader.SwitchCarPart), typeof(CarPart), typeof(bool), typeof(bool))]
@@ -34,7 +38,7 @@ public static class CarSyncHooks
 	public static void SwitchCarPartStateHook(CarPart part, bool instant, bool switched, CarLoader __instance)
 	{
 		if (part == null) return;
-		QueuePartSwitch(__instance, part.name);
+		QueueScenePartSwitch(__instance, part.name);
 	}
 
 	[HarmonyPatch(typeof(CarLoader), nameof(CarLoader.SwitchCarPart), typeof(CarPart), typeof(bool))]
@@ -42,19 +46,22 @@ public static class CarSyncHooks
 	public static void SwitchCarPartAnimHook(CarPart part, bool instant, CarLoader __instance)
 	{
 		if (part == null) return;
-		QueuePartSwitch(__instance, part.name, delay: true);
+		QueueScenePartSwitch(__instance, part.name);
 	}
 
-	private static void QueuePartSwitch(CarLoader loader, string partName, bool delay = false)
+	private static void QueueScenePartSwitch(CarLoader loader, string partName)
 	{
 		if (!Client.Instance.isConnected || !listen) return;
 		if (loader == null || string.IsNullOrEmpty(partName)) return;
 
-		// Scene car (barn, junkyard, salon) — send a lightweight sceneCarPart packet.
 		if (SceneCarSyncLogic.TryGetSceneCarSlot(loader, out var sceneType, out var slotIndex))
 		{
-			ClientSend.SceneCarPartPacket(new ModSceneCarPart(sceneType, slotIndex, partName));
-			MelonLogger.Msg($"[CarSyncHooks] Synced scene part '{partName}' on {sceneType} slot {slotIndex}.");
+			string key = $"{(int)sceneType}:{slotIndex}:{partName}";
+			if (pendingScenePartSends.TryGetValue(key, out var existing) && existing != null)
+			{
+				try { MelonCoroutines.Stop(existing); } catch { /* ignore */ }
+			}
+			pendingScenePartSends[key] = MelonCoroutines.Start(SendScenePartDelayed(loader, sceneType, slotIndex, partName, key));
 			return;
 		}
 
@@ -64,7 +71,34 @@ public static class CarSyncHooks
 		if (carLoaderID < 0 || carLoaderID >= 5) return;
 		if (!ClientData.Instance.loadedCars.ContainsKey(carLoaderID)) return;
 
-		MelonCoroutines.Start(SendPartSwitch(loader, partName, carLoaderID, delay));
+		MelonCoroutines.Start(SendPartSwitch(loader, partName, carLoaderID, delay: true));
+	}
+
+	private static IEnumerator SendScenePartDelayed(CarLoader loader, SceneCarType sceneType, int slotIndex,
+		string partName, string key)
+	{
+		// Wait for all SwitchCarPart overloads to settle on the final Switched value.
+		yield return new WaitForEndOfFrame();
+		yield return new WaitForSeconds(0.08f);
+
+		pendingScenePartSends.Remove(key);
+		if (!Client.Instance.isConnected || !listen || loader == null) yield break;
+
+		bool switched = false;
+		bool hasSwitched = false;
+		try
+		{
+			var p = loader.GetCarPart(partName);
+			if (p != null)
+			{
+				switched = p.Switched;
+				hasSwitched = true;
+			}
+		}
+		catch { /* ignore */ }
+
+		ClientSend.SceneCarPartPacket(new ModSceneCarPart(sceneType, slotIndex, partName, switched, hasSwitched));
+		MelonLogger.Msg($"[CarSyncHooks] Synced scene part '{partName}' switched={switched} on {sceneType} slot {slotIndex}.");
 	}
 
 	private static IEnumerator SendPartSwitch(CarLoader loader, string partName, int carLoaderID, bool delay)
